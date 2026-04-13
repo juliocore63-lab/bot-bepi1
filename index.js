@@ -34,11 +34,9 @@ function loadDb() {
 
   try {
     const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-
     if (!data.viaturas) data.viaturas = {};
     if (!data.membros) data.membros = {};
     if (!data.historico) data.historico = [];
-
     return data;
   } catch (error) {
     console.error("Erro ao ler db.json:", error);
@@ -159,12 +157,17 @@ function ensureViatura(nome) {
   if (!db.viaturas[nomeFormatado]) {
     db.viaturas[nomeFormatado] = {
       membros: [],
+      entrada: {},
       lider: null,
       inicio: null,
       prisoes: 0,
       dinheiro: 0,
       ocorrencias: 0,
     };
+  }
+
+  if (!db.viaturas[nomeFormatado].entrada) {
+    db.viaturas[nomeFormatado].entrada = {};
   }
 
   return db.viaturas[nomeFormatado];
@@ -256,6 +259,21 @@ function registrarParaTodaViatura(membros, tipo, valor) {
 
     logAction(membroId, tipo, valor);
   }
+}
+
+function registrarTempoIndividual(v, userId) {
+  const entrouEm = v.entrada?.[userId];
+  if (!entrouEm) return;
+
+  const tempoMin = (Date.now() - entrouEm) / 60000;
+  const m = ensureMember(userId);
+
+  m.tempo += tempoMin;
+  m.pontos += Math.floor(tempoMin);
+
+  logAction(userId, "tempo", tempoMin);
+
+  delete v.entrada[userId];
 }
 
 const commands = [
@@ -366,8 +384,13 @@ client.on("interactionCreate", async (interaction) => {
       if (tipo === "entrar") {
         if (!v.membros.includes(id) && v.membros.length < 4) {
           v.membros.push(id);
+
+          if (!v.entrada) v.entrada = {};
+          v.entrada[id] = Date.now();
+
           if (!v.inicio) v.inicio = Date.now();
           if (!v.lider) v.lider = id;
+
           saveDb();
         }
 
@@ -402,6 +425,8 @@ client.on("interactionCreate", async (interaction) => {
           });
         }
 
+        registrarTempoIndividual(v, id);
+
         v.membros = v.membros.filter((u) => u !== id);
 
         if (v.lider === id) {
@@ -413,6 +438,7 @@ client.on("interactionCreate", async (interaction) => {
           v.prisoes = 0;
           v.ocorrencias = 0;
           v.dinheiro = 0;
+          v.entrada = {};
         }
 
         saveDb();
@@ -493,11 +519,14 @@ client.on("interactionCreate", async (interaction) => {
 
         const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
         const equipe = formatEquipe(v.membros);
-        const tempoMin = v.inicio
+
+        for (const membroId of v.membros) {
+          registrarTempoIndividual(v, membroId);
+        }
+
+        const tempoTotal = v.inicio
           ? ((Date.now() - v.inicio) / 60000).toFixed(1)
           : "0.0";
-
-        registrarParaTodaViatura(v.membros, "tempo", Number(tempoMin));
 
         const embed = new EmbedBuilder()
           .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
@@ -505,7 +534,7 @@ client.on("interactionCreate", async (interaction) => {
           .addFields(
             { name: "⭐ Líder", value: lider, inline: false },
             { name: "👮 Equipe", value: equipe, inline: false },
-            { name: "⏱️ Tempo", value: `${tempoMin} min`, inline: true },
+            { name: "⏱️ Tempo total da viatura", value: `${tempoTotal} min`, inline: true },
             { name: "🚔 Prisões", value: String(v.prisoes), inline: true },
             { name: "📦 Ocorrências", value: String(v.ocorrencias), inline: true },
             { name: "💰 Dinheiro", value: `R$${v.dinheiro}`, inline: true }
@@ -523,6 +552,7 @@ client.on("interactionCreate", async (interaction) => {
 
         db.viaturas[nome] = {
           membros: [],
+          entrada: {},
           lider: null,
           inicio: null,
           prisoes: 0,
