@@ -1,0 +1,13 @@
+{
+  "name": "bepi-bot",
+  "version": "1.0.0",
+  "description": "Bot BEPI com sistema de viatura e relatorios",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5"
+  }
+}
