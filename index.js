@@ -118,39 +118,6 @@ function calcularStats(lista) {
   return stats;
 }
 
-function rankingEmbed(stats, titulo) {
-  const ranking = Object.entries(stats)
-    .sort((a, b) => b[1].pontos - a[1].pontos)
-    .slice(0, 10);
-
-  const embed = new EmbedBuilder()
-    .setTitle(titulo)
-    .setColor("Gold")
-    .setTimestamp();
-
-  if (!ranking.length) {
-    embed.setDescription("Sem dados no momento.");
-    return embed;
-  }
-
-  embed.setDescription(
-    ranking
-      .map(([userId, dados], index) => {
-        return [
-          `**${index + 1}.** <@${userId}>`,
-          `⏱️ ${dados.tempo.toFixed(1)} min`,
-          `🚔 ${dados.prisoes} prisões`,
-          `📦 ${dados.ocorrencias} ocorrências`,
-          `💰 R$${dados.dinheiro}`,
-          `🏆 ${dados.pontos} pts`,
-        ].join(" | ");
-      })
-      .join("\n")
-  );
-
-  return embed;
-}
-
 function ensureViatura(nome) {
   const nomeFormatado = nome.toUpperCase().trim();
 
@@ -304,14 +271,13 @@ function registrarSaida(v, userId) {
   return tempoMin;
 }
 
-function formatTempoIndividual(v) {
-  const ids = Object.keys(v.tempoIndividual || {});
-  if (!ids.length) return "Nenhum tempo registrado.";
+function formatTempoIndividual(v, equipeFinal) {
+  if (!equipeFinal.length) return "Nenhum tempo registrado.";
 
-  return ids
-    .map((id, index) => {
-      const minutos = v.tempoIndividual[id] || 0;
-      return `P${index + 1}: <@${id}> — ${minutos.toFixed(1)} min`;
+  return equipeFinal
+    .map((membroId, index) => {
+      const tempo = v.tempoIndividual?.[membroId] || 0;
+      return `P${index + 1}: <@${membroId}> — ${tempo.toFixed(1)} min`;
     })
     .join("\n");
 }
@@ -330,6 +296,104 @@ function formatHistoricoSaidas(v) {
   return v.historicoSaidas
     .map((item, index) => `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`)
     .join("\n");
+}
+
+function buildRankingPages(stats, titulo) {
+  const ranking = Object.entries(stats).sort((a, b) => b[1].pontos - a[1].pontos);
+
+  if (!ranking.length) {
+    return [
+      new EmbedBuilder()
+        .setTitle(titulo)
+        .setColor("Gold")
+        .setDescription("Sem dados no momento.")
+        .setTimestamp(),
+    ];
+  }
+
+  const pageSize = 10;
+  const pages = [];
+
+  for (let i = 0; i < ranking.length; i += pageSize) {
+    const chunk = ranking.slice(i, i + pageSize);
+
+    const embed = new EmbedBuilder()
+      .setTitle(titulo)
+      .setColor("Gold")
+      .setDescription(
+        chunk
+          .map(([userId, dados], index) => {
+            const pos = i + index + 1;
+            return [
+              `**${pos}.** <@${userId}>`,
+              `⏱️ ${dados.tempo.toFixed(1)} min`,
+              `🚔 ${dados.prisoes} prisões`,
+              `📦 ${dados.ocorrencias} ocorrências`,
+              `💰 R$${dados.dinheiro}`,
+              `🏆 ${dados.pontos} pts`,
+            ].join(" | ");
+          })
+          .join("\n")
+      )
+      .setFooter({
+        text: `Página ${Math.floor(i / pageSize) + 1} de ${Math.ceil(ranking.length / pageSize)}`,
+      })
+      .setTimestamp();
+
+    pages.push(embed);
+  }
+
+  return pages;
+}
+
+function buildRankingButtons(tipo, page, totalPages) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`rank_prev:${tipo}:${page}`)
+        .setLabel("⬅️ Anterior")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page <= 0),
+      new ButtonBuilder()
+        .setCustomId(`rank_info:${tipo}:${page}`)
+        .setLabel(`Página ${page + 1}/${totalPages}`)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId(`rank_next:${tipo}:${page}`)
+        .setLabel("Próxima ➡️")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page >= totalPages - 1)
+    ),
+  ];
+}
+
+function getRankingData(tipo) {
+  if (tipo === "geral") {
+    return {
+      titulo: "🏆 Ranking Geral",
+      stats: calcularStats(db.historico),
+    };
+  }
+
+  if (tipo === "semanal") {
+    return {
+      titulo: "📊 Ranking Semanal",
+      stats: calcularStats(getPeriodoDias(7)),
+    };
+  }
+
+  if (tipo === "mensal") {
+    return {
+      titulo: "📊 Ranking Mensal",
+      stats: calcularStats(getPeriodoDias(30)),
+    };
+  }
+
+  return {
+    titulo: "Ranking",
+    stats: {},
+  };
 }
 
 const commands = [
@@ -387,20 +451,32 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "ranking") {
+        const { titulo, stats } = getRankingData("geral");
+        const pages = buildRankingPages(stats, titulo);
+
         return await interaction.reply({
-          embeds: [rankingEmbed(calcularStats(db.historico), "🏆 Ranking Geral")],
+          embeds: [pages[0]],
+          components: buildRankingButtons("geral", 0, pages.length),
         });
       }
 
       if (interaction.commandName === "rankingsemanal") {
+        const { titulo, stats } = getRankingData("semanal");
+        const pages = buildRankingPages(stats, titulo);
+
         return await interaction.reply({
-          embeds: [rankingEmbed(calcularStats(getPeriodoDias(7)), "📊 Ranking Semanal")],
+          embeds: [pages[0]],
+          components: buildRankingButtons("semanal", 0, pages.length),
         });
       }
 
       if (interaction.commandName === "rankingmensal") {
+        const { titulo, stats } = getRankingData("mensal");
+        const pages = buildRankingPages(stats, titulo);
+
         return await interaction.reply({
-          embeds: [rankingEmbed(calcularStats(getPeriodoDias(30)), "📊 Ranking Mensal")],
+          embeds: [pages[0]],
+          components: buildRankingButtons("mensal", 0, pages.length),
         });
       }
 
@@ -426,6 +502,29 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     if (interaction.isButton()) {
+      if (interaction.customId.startsWith("rank_prev:") || interaction.customId.startsWith("rank_next:")) {
+        const [acao, tipo, pageStr] = interaction.customId.split(":");
+        let page = parseInt(pageStr, 10);
+
+        if (acao === "rank_prev") page--;
+        if (acao === "rank_next") page++;
+
+        const { titulo, stats } = getRankingData(tipo);
+        const pages = buildRankingPages(stats, titulo);
+
+        if (page < 0) page = 0;
+        if (page >= pages.length) page = pages.length - 1;
+
+        return await interaction.update({
+          embeds: [pages[page]],
+          components: buildRankingButtons(tipo, page, pages.length),
+        });
+      }
+
+      if (interaction.customId.startsWith("rank_info:")) {
+        return await interaction.deferUpdate();
+      }
+
       const [tipo, nomeRaw] = interaction.customId.split(":");
       const nome = nomeRaw.toUpperCase().trim();
       const v = ensureViatura(nome);
@@ -474,7 +573,6 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         registrarSaida(v, id);
-
         v.membros = v.membros.filter((u) => u !== id);
 
         if (v.lider === id) {
@@ -558,105 +656,84 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "finalizar") {
-  if (!v.membros.includes(id)) {
-    return await interaction.reply({
-      content: "❌ Você precisa estar na viatura para finalizar.",
-      ephemeral: true,
-    });
-  }
+        if (!v.membros.includes(id)) {
+          return await interaction.reply({
+            content: "❌ Você precisa estar na viatura para finalizar.",
+            ephemeral: true,
+          });
+        }
 
-  const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
-  const equipeFinal = [...v.membros];
+        const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
+        const equipeFinal = [...v.membros];
 
-  for (const membroId of equipeFinal) {
-    registrarSaida(v, membroId);
-  }
+        for (const membroId of equipeFinal) {
+          registrarSaida(v, membroId);
+        }
 
-  const tempoTotal = v.inicio
-    ? ((Date.now() - v.inicio) / 60000).toFixed(1)
-    : "0.0";
+        const tempoTotal = v.inicio
+          ? ((Date.now() - v.inicio) / 60000).toFixed(1)
+          : "0.0";
 
-  const p1 = equipeFinal[0] ? `<@${equipeFinal[0]}>` : "—";
-  const p2 = equipeFinal[1] ? `<@${equipeFinal[1]}>` : "—";
-  const p3 = equipeFinal[2] ? `<@${equipeFinal[2]}>` : "—";
-  const p4 = equipeFinal[3] ? `<@${equipeFinal[3]}>` : "—";
+        const p1 = equipeFinal[0] ? `<@${equipeFinal[0]}>` : "—";
+        const p2 = equipeFinal[1] ? `<@${equipeFinal[1]}>` : "—";
+        const p3 = equipeFinal[2] ? `<@${equipeFinal[2]}>` : "—";
+        const p4 = equipeFinal[3] ? `<@${equipeFinal[3]}>` : "—";
 
-  const tempoIndividual = equipeFinal.length
-    ? equipeFinal
-        .map((membroId, index) => {
-          const tempo = v.tempoIndividual?.[membroId] || 0;
-          return `P${index + 1}: <@${membroId}> — ${tempo.toFixed(1)} min`;
-        })
-        .join("\n")
-    : "Nenhum tempo registrado.";
+        const embed = new EmbedBuilder()
+          .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
+          .setColor("Red")
+          .addFields(
+            { name: "⭐ Comandante da Patrulha", value: lider, inline: false },
 
-  const quemEntrou = v.historicoEntradas?.length
-    ? v.historicoEntradas
-        .map((item, index) => `E${index + 1}: <@${item.userId}>`)
-        .join("\n")
-    : "Ninguém entrou.";
+            { name: "🚓 Viatura", value: nome.toUpperCase(), inline: true },
+            { name: "⏱️ Tempo Total", value: `${tempoTotal} min`, inline: true },
+            { name: "💰 Dinheiro Sujo", value: `R$${v.dinheiro}`, inline: true },
 
-  const quemSaiu = v.historicoSaidas?.length
-    ? v.historicoSaidas
-        .map((item, index) => `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`)
-        .join("\n")
-    : "Ninguém saiu antes do encerramento.";
+            { name: "👮 P1", value: p1, inline: true },
+            { name: "👮 P2", value: p2, inline: true },
+            { name: "👮 P3", value: p3, inline: true },
+            { name: "👮 P4", value: p4, inline: true },
 
-  const embed = new EmbedBuilder()
-    .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
-    .setColor("Red")
-    .addFields(
-      { name: "⭐ Comandante da Patrulha", value: lider, inline: false },
+            { name: "🚔 Prisões", value: String(v.prisoes), inline: true },
+            { name: "📦 Ocorrências", value: String(v.ocorrencias), inline: true },
 
-      { name: "🚓 Viatura", value: nome.toUpperCase(), inline: true },
-      { name: "⏱️ Tempo Total", value: `${tempoTotal} min`, inline: true },
-      { name: "💰 Dinheiro Sujo", value: `R$${v.dinheiro}`, inline: true },
+            { name: "⏱️ Tempo Individual", value: formatTempoIndividual(v, equipeFinal), inline: false },
+            { name: "📥 Histórico de Entrada", value: formatHistoricoEntradas(v), inline: false },
+            { name: "📤 Histórico de Saída", value: formatHistoricoSaidas(v), inline: false }
+          )
+          .setFooter({ text: "BEPI • Sistema de Patrulha" })
+          .setTimestamp();
 
-      { name: "👮 P1", value: p1, inline: true },
-      { name: "👮 P2", value: p2, inline: true },
-      { name: "👮 P3", value: p3, inline: true },
-      { name: "👮 P4", value: p4, inline: true },
+        try {
+          const canal = await client.channels.fetch(process.env.LOG_CHANNEL);
+          if (canal) {
+            await canal.send({ embeds: [embed] });
+          }
+        } catch (error) {
+          console.error("Erro ao enviar log:", error);
+        }
 
-      { name: "🚔 Prisões", value: String(v.prisoes), inline: true },
-      { name: "📦 Ocorrências", value: String(v.ocorrencias), inline: true },
+        db.viaturas[nome] = {
+          membros: [],
+          entrada: {},
+          lider: null,
+          inicio: null,
+          prisoes: 0,
+          dinheiro: 0,
+          ocorrencias: 0,
+          tempoIndividual: {},
+          historicoEntradas: [],
+          historicoSaidas: [],
+        };
 
-      { name: "⏱️ Tempo Individual", value: tempoIndividual, inline: false },
-      { name: "📥 Histórico de Entrada", value: quemEntrou, inline: false },
-      { name: "📤 Histórico de Saída", value: quemSaiu, inline: false }
-    )
-    .setFooter({ text: "BEPI • Sistema de Patrulha" })
-    .setTimestamp();
+        saveDb();
 
-  try {
-    const canal = await client.channels.fetch(process.env.LOG_CHANNEL);
-    if (canal) {
-      await canal.send({ embeds: [embed] });
-    }
-  } catch (error) {
-    console.error("Erro ao enviar log:", error);
-  }
-
-  db.viaturas[nome] = {
-    membros: [],
-    entrada: {},
-    lider: null,
-    inicio: null,
-    prisoes: 0,
-    dinheiro: 0,
-    ocorrencias: 0,
-    tempoIndividual: {},
-    historicoEntradas: [],
-    historicoSaidas: [],
-  };
-
-  saveDb();
-
-  return await interaction.update({
-    content: "✅ Patrulha finalizada.",
-    embeds: [embed],
-    components: [],
-  });
-}
+        return await interaction.update({
+          content: "✅ Patrulha finalizada.",
+          embeds: [embed],
+          components: [],
+        });
+      }
 
       return;
     }
