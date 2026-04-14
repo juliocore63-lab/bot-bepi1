@@ -163,14 +163,19 @@ function ensureViatura(nome) {
       prisoes: 0,
       dinheiro: 0,
       ocorrencias: 0,
+      tempoIndividual: {},
+      historicoEntradas: [],
+      historicoSaidas: [],
     };
   }
 
-  if (!db.viaturas[nomeFormatado].entrada) {
-    db.viaturas[nomeFormatado].entrada = {};
-  }
+  const v = db.viaturas[nomeFormatado];
+  if (!v.entrada) v.entrada = {};
+  if (!v.tempoIndividual) v.tempoIndividual = {};
+  if (!v.historicoEntradas) v.historicoEntradas = [];
+  if (!v.historicoSaidas) v.historicoSaidas = [];
 
-  return db.viaturas[nomeFormatado];
+  return v;
 }
 
 function formatEquipe(membros) {
@@ -261,19 +266,70 @@ function registrarParaTodaViatura(membros, tipo, valor) {
   }
 }
 
-function registrarTempoIndividual(v, userId) {
+function registrarEntrada(v, userId) {
+  if (!v.entrada[userId]) {
+    v.entrada[userId] = Date.now();
+    v.historicoEntradas.push({
+      userId,
+      data: Date.now(),
+    });
+  }
+}
+
+function registrarSaida(v, userId) {
   const entrouEm = v.entrada?.[userId];
-  if (!entrouEm) return;
+  if (!entrouEm) return 0;
 
   const tempoMin = (Date.now() - entrouEm) / 60000;
-  const m = ensureMember(userId);
 
+  if (!v.tempoIndividual[userId]) {
+    v.tempoIndividual[userId] = 0;
+  }
+
+  v.tempoIndividual[userId] += tempoMin;
+
+  const m = ensureMember(userId);
   m.tempo += tempoMin;
   m.pontos += Math.floor(tempoMin);
 
   logAction(userId, "tempo", tempoMin);
 
+  v.historicoSaidas.push({
+    userId,
+    data: Date.now(),
+    tempo: tempoMin,
+  });
+
   delete v.entrada[userId];
+  return tempoMin;
+}
+
+function formatTempoIndividual(v) {
+  const ids = Object.keys(v.tempoIndividual || {});
+  if (!ids.length) return "Nenhum tempo registrado.";
+
+  return ids
+    .map((id, index) => {
+      const minutos = v.tempoIndividual[id] || 0;
+      return `P${index + 1}: <@${id}> — ${minutos.toFixed(1)} min`;
+    })
+    .join("\n");
+}
+
+function formatHistoricoEntradas(v) {
+  if (!v.historicoEntradas?.length) return "Ninguém entrou.";
+
+  return v.historicoEntradas
+    .map((item, index) => `E${index + 1}: <@${item.userId}>`)
+    .join("\n");
+}
+
+function formatHistoricoSaidas(v) {
+  if (!v.historicoSaidas?.length) return "Ninguém saiu antes do encerramento.";
+
+  return v.historicoSaidas
+    .map((item, index) => `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`)
+    .join("\n");
 }
 
 const commands = [
@@ -286,19 +342,15 @@ const commands = [
         .setDescription("Nome da viatura (ex: VTR01)")
         .setRequired(true)
     ),
-
   new SlashCommandBuilder()
     .setName("ranking")
     .setDescription("Ver ranking geral dos policiais"),
-
   new SlashCommandBuilder()
     .setName("rankingsemanal")
     .setDescription("Ver ranking semanal"),
-
   new SlashCommandBuilder()
     .setName("rankingmensal")
     .setDescription("Ver ranking mensal"),
-
   new SlashCommandBuilder()
     .setName("meurank")
     .setDescription("Ver seu desempenho individual"),
@@ -341,16 +393,14 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "rankingsemanal") {
-        const stats = calcularStats(getPeriodoDias(7));
         return await interaction.reply({
-          embeds: [rankingEmbed(stats, "📊 Ranking Semanal")],
+          embeds: [rankingEmbed(calcularStats(getPeriodoDias(7)), "📊 Ranking Semanal")],
         });
       }
 
       if (interaction.commandName === "rankingmensal") {
-        const stats = calcularStats(getPeriodoDias(30));
         return await interaction.reply({
-          embeds: [rankingEmbed(stats, "📊 Ranking Mensal")],
+          embeds: [rankingEmbed(calcularStats(getPeriodoDias(30)), "📊 Ranking Mensal")],
         });
       }
 
@@ -384,9 +434,7 @@ client.on("interactionCreate", async (interaction) => {
       if (tipo === "entrar") {
         if (!v.membros.includes(id) && v.membros.length < 4) {
           v.membros.push(id);
-
-          if (!v.entrada) v.entrada = {};
-          v.entrada[id] = Date.now();
+          registrarEntrada(v, id);
 
           if (!v.inicio) v.inicio = Date.now();
           if (!v.lider) v.lider = id;
@@ -425,7 +473,7 @@ client.on("interactionCreate", async (interaction) => {
           });
         }
 
-        registrarTempoIndividual(v, id);
+        registrarSaida(v, id);
 
         v.membros = v.membros.filter((u) => u !== id);
 
@@ -510,64 +558,105 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "finalizar") {
-        if (!v.membros.includes(id)) {
-          return await interaction.reply({
-            content: "❌ Você precisa estar na viatura para finalizar.",
-            ephemeral: true,
-          });
-        }
+  if (!v.membros.includes(id)) {
+    return await interaction.reply({
+      content: "❌ Você precisa estar na viatura para finalizar.",
+      ephemeral: true,
+    });
+  }
 
-        const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
-        const equipe = formatEquipe(v.membros);
+  const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
+  const equipeFinal = [...v.membros];
 
-        for (const membroId of v.membros) {
-          registrarTempoIndividual(v, membroId);
-        }
+  for (const membroId of equipeFinal) {
+    registrarSaida(v, membroId);
+  }
 
-        const tempoTotal = v.inicio
-          ? ((Date.now() - v.inicio) / 60000).toFixed(1)
-          : "0.0";
+  const tempoTotal = v.inicio
+    ? ((Date.now() - v.inicio) / 60000).toFixed(1)
+    : "0.0";
 
-        const embed = new EmbedBuilder()
-          .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
-          .setColor("Red")
-          .addFields(
-            { name: "⭐ Líder", value: lider, inline: false },
-            { name: "👮 Equipe", value: equipe, inline: false },
-            { name: "⏱️ Tempo total da viatura", value: `${tempoTotal} min`, inline: true },
-            { name: "🚔 Prisões", value: String(v.prisoes), inline: true },
-            { name: "📦 Ocorrências", value: String(v.ocorrencias), inline: true },
-            { name: "💰 Dinheiro", value: `R$${v.dinheiro}`, inline: true }
-          )
-          .setTimestamp();
+  const p1 = equipeFinal[0] ? `<@${equipeFinal[0]}>` : "—";
+  const p2 = equipeFinal[1] ? `<@${equipeFinal[1]}>` : "—";
+  const p3 = equipeFinal[2] ? `<@${equipeFinal[2]}>` : "—";
+  const p4 = equipeFinal[3] ? `<@${equipeFinal[3]}>` : "—";
 
-        try {
-          const canal = await client.channels.fetch(process.env.LOG_CHANNEL);
-          if (canal) {
-            await canal.send({ embeds: [embed] });
-          }
-        } catch (error) {
-          console.error("Erro ao enviar log:", error);
-        }
+  const tempoIndividual = equipeFinal.length
+    ? equipeFinal
+        .map((membroId, index) => {
+          const tempo = v.tempoIndividual?.[membroId] || 0;
+          return `P${index + 1}: <@${membroId}> — ${tempo.toFixed(1)} min`;
+        })
+        .join("\n")
+    : "Nenhum tempo registrado.";
 
-        db.viaturas[nome] = {
-          membros: [],
-          entrada: {},
-          lider: null,
-          inicio: null,
-          prisoes: 0,
-          dinheiro: 0,
-          ocorrencias: 0,
-        };
+  const quemEntrou = v.historicoEntradas?.length
+    ? v.historicoEntradas
+        .map((item, index) => `E${index + 1}: <@${item.userId}>`)
+        .join("\n")
+    : "Ninguém entrou.";
 
-        saveDb();
+  const quemSaiu = v.historicoSaidas?.length
+    ? v.historicoSaidas
+        .map((item, index) => `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`)
+        .join("\n")
+    : "Ninguém saiu antes do encerramento.";
 
-        return await interaction.update({
-          content: "✅ Patrulha finalizada.",
-          embeds: [embed],
-          components: [],
-        });
-      }
+  const embed = new EmbedBuilder()
+    .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
+    .setColor("Red")
+    .addFields(
+      { name: "⭐ Comandante da Patrulha", value: lider, inline: false },
+
+      { name: "🚓 Viatura", value: nome.toUpperCase(), inline: true },
+      { name: "⏱️ Tempo Total", value: `${tempoTotal} min`, inline: true },
+      { name: "💰 Dinheiro Sujo", value: `R$${v.dinheiro}`, inline: true },
+
+      { name: "👮 P1", value: p1, inline: true },
+      { name: "👮 P2", value: p2, inline: true },
+      { name: "👮 P3", value: p3, inline: true },
+      { name: "👮 P4", value: p4, inline: true },
+
+      { name: "🚔 Prisões", value: String(v.prisoes), inline: true },
+      { name: "📦 Ocorrências", value: String(v.ocorrencias), inline: true },
+
+      { name: "⏱️ Tempo Individual", value: tempoIndividual, inline: false },
+      { name: "📥 Histórico de Entrada", value: quemEntrou, inline: false },
+      { name: "📤 Histórico de Saída", value: quemSaiu, inline: false }
+    )
+    .setFooter({ text: "BEPI • Sistema de Patrulha" })
+    .setTimestamp();
+
+  try {
+    const canal = await client.channels.fetch(process.env.LOG_CHANNEL);
+    if (canal) {
+      await canal.send({ embeds: [embed] });
+    }
+  } catch (error) {
+    console.error("Erro ao enviar log:", error);
+  }
+
+  db.viaturas[nome] = {
+    membros: [],
+    entrada: {},
+    lider: null,
+    inicio: null,
+    prisoes: 0,
+    dinheiro: 0,
+    ocorrencias: 0,
+    tempoIndividual: {},
+    historicoEntradas: [],
+    historicoSaidas: [],
+  };
+
+  saveDb();
+
+  return await interaction.update({
+    content: "✅ Patrulha finalizada.",
+    embeds: [embed],
+    components: [],
+  });
+}
 
       return;
     }
