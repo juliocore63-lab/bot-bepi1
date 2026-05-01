@@ -298,6 +298,8 @@ function formatHistoricoSaidas(v) {
     .join("\n");
 }
 
+//reset ranking
+
 function buildRankingPages(stats, titulo) {
   const ranking = Object.entries(stats).sort((a, b) => b[1].pontos - a[1].pontos);
 
