@@ -118,6 +118,59 @@ function calcularStats(lista) {
   return stats;
 }
 
+//reset ranking 1
+
+function rankingEmbed(stats, titulo) {
+  const ranking = Object.entries(stats)
+    .sort((a, b) => b[1].pontos - a[1].pontos)
+    .slice(0, 10);
+
+  const embed = new EmbedBuilder()
+    .setTitle(titulo)
+    .setColor("Gold")
+    .setTimestamp();
+
+  if (!ranking.length) {
+    embed.setDescription("Sem dados no momento.");
+    return embed;
+  }
+
+  embed.setDescription(
+    ranking
+      .map(([userId, dados], index) => {
+        return [
+          `**${index + 1}.** <@${userId}>`,
+          `⏱️ ${dados.tempo.toFixed(1)} min`,
+          `🚔 ${dados.prisoes} prisões`,
+          `📦 ${dados.ocorrencias} ocorrências`,
+          `💰 R$${dados.dinheiro}`,
+          `🏆 ${dados.pontos} pts`,
+        ].join(" | ");
+      })
+      .join("\n")
+  );
+
+  return embed;
+}
+
+  embed.setDescription(
+    ranking
+      .map(([userId, dados], index) => {
+        return [
+          `**${index + 1}.** <@${userId}>`,
+          `⏱️ ${dados.tempo.toFixed(1)} min`,
+          `🚔 ${dados.prisoes} prisões`,
+          `📦 ${dados.ocorrencias} ocorrências`,
+          `💰 R$${dados.dinheiro}`,
+          `🏆 ${dados.pontos} pts`,
+        ].join(" | ");
+      })
+      .join("\n")
+  );
+
+  return embed;
+}
+
 function ensureViatura(nome) {
   const nomeFormatado = nome.toUpperCase().trim();
 
