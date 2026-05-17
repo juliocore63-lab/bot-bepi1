@@ -19,7 +19,7 @@ const fs = require("fs");
 const path = require("path");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
 const DB_FILE = path.join(__dirname, "db.json");
@@ -132,8 +132,6 @@ function calcularStats(lista) {
   return stats;
 }
 
-//reset ranking 1
-
 function rankingEmbed(stats, titulo) {
   const ranking = Object.entries(stats)
     .sort((a, b) => b[1].pontos - a[1].pontos)
@@ -148,24 +146,6 @@ function rankingEmbed(stats, titulo) {
     embed.setDescription("Sem dados no momento.");
     return embed;
   }
-
-  embed.setDescription(
-    ranking
-      .map(([userId, dados], index) => {
-        return [
-          `**${index + 1}.** <@${userId}>`,
-          `⏱️ ${dados.tempo.toFixed(1)} min`,
-          `🚔 ${dados.prisoes} prisões`,
-          `📦 ${dados.ocorrencias} ocorrências`,
-          `💰 R$${dados.dinheiro}`,
-          `🏆 ${dados.pontos} pts`,
-        ].join(" | ");
-      })
-      .join("\n")
-  );
-
-  return embed;
-}
 
   embed.setDescription(
     ranking
@@ -325,6 +305,13 @@ function registrarSaida(v, userId) {
   const m = ensureMember(userId);
   m.tempo += tempoMin;
   m.pontos += Math.floor(tempoMin);
+  m.lastPatrolAt = Date.now();
+
+  if (m.patrolStart) {
+    const tempoSemanal = (Date.now() - m.patrolStart) / 60000;
+    m.weeklyTime += tempoSemanal;
+    m.patrolStart = null;
+  }
 
   logAction(userId, "tempo", tempoMin);
 
@@ -364,8 +351,6 @@ function formatHistoricoSaidas(v) {
     .map((item, index) => `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`)
     .join("\n");
 }
-
-//reset ranking
 
 function buildRankingPages(stats, titulo) {
   const ranking = Object.entries(stats).sort((a, b) => b[1].pontos - a[1].pontos);
@@ -487,23 +472,18 @@ const commands = [
   new SlashCommandBuilder()
     .setName("meurank")
     .setDescription("Ver seu desempenho individual"),
-
   new SlashCommandBuilder()
     .setName("atividade")
     .setDescription("Ver atividade operacional"),
-
   new SlashCommandBuilder()
     .setName("tempo")
     .setDescription("Ver tempo semanal"),
-
   new SlashCommandBuilder()
     .setName("hierarquia")
     .setDescription("Ver hierarquia operacional"),
-	
-	new SlashCommandBuilder()
-  .setName("hierarquia2")
-  .setDescription("Ver segunda hierarquia"),
-
+  new SlashCommandBuilder()
+    .setName("hierarquia2")
+    .setDescription("Ver segunda hierarquia"),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
@@ -609,7 +589,7 @@ client.on("interactionCreate", async (interaction) => {
           const dias = Math.floor(horas / 24);
 
           return `🔴 <@${id}> — há ${dias} dias`;
-        }).join("\n");
+        }).join("\n") || "Sem dados de atividade.";
 
         const embed = new EmbedBuilder()
           .setTitle("📋 Atividade Operacional")
@@ -619,8 +599,8 @@ client.on("interactionCreate", async (interaction) => {
 
         return await interaction.reply({ embeds: [embed] });
       }
-
-      if (interaction.commandName === "tempo") {
+	  
+	        if (interaction.commandName === "tempo") {
         const META = 300;
 
         const membros = Object.entries(db.membros)
@@ -639,7 +619,7 @@ client.on("interactionCreate", async (interaction) => {
           }
 
           return `<@${id}> | ⏱️ ${formatMinutes(tempo)} | ${status}`;
-        }).join("\n");
+        }).join("\n") || "Sem dados de tempo.";
 
         const embed = new EmbedBuilder()
           .setTitle("📊 Controle Semanal")
@@ -660,25 +640,25 @@ client.on("interactionCreate", async (interaction) => {
           "🇧🇷┊Tenente Coronel ✪   ✪  ★",
           "🇧🇷┊Major ✪  ★  ★",
           "🇧🇷┊Capitão ★  ★  ★",
-		  "🇧🇷┊1º Tenente ★ ★",
-		  "🇧🇷┊2º Tenente ★",
-		  "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
-		  "🇧🇷┊Sub-Tenente ★",
-		  "🇧🇷┊1º Sargento     .",
-		  "🇧🇷┊2° Sargento       .",
-		  "🇧🇷┊3° Sargento         .",
-		  "🇧🇷┊Cabo ︽          .",
-		  "🇧🇷┊Soldado ︿           .",
-		  "🇧🇷┊Recruta ︿         .",
-		  "🇧🇷┊Aposentado",
+          "🇧🇷┊1º Tenente ★ ★",
+          "🇧🇷┊2º Tenente ★",
+          "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
+          "🇧🇷┊Sub-Tenente ★",
+          "🇧🇷┊1º Sargento     .",
+          "🇧🇷┊2° Sargento       .",
+          "🇧🇷┊3° Sargento         .",
+          "🇧🇷┊Cabo ︽          .",
+          "🇧🇷┊Soldado ︿           .",
+          "🇧🇷┊Recruta ︿         .",
+          "🇧🇷┊Aposentado",
         ];
 
         let descricao = "";
 
         for (const cargoNome of cargos) {
           const cargo = interaction.guild.roles.cache.find(
-  (r) => r.name.trim() === cargoNome.trim()
-);
+            (r) => r.name.trim() === cargoNome.trim()
+          );
 
           if (!cargo) continue;
 
@@ -694,49 +674,49 @@ client.on("interactionCreate", async (interaction) => {
         const embed = new EmbedBuilder()
           .setTitle("👑 Hierarquia BEPI")
           .setColor("Purple")
-          .setDescription(descricao)
+          .setDescription(descricao || "Nenhum cargo encontrado.")
           .setTimestamp();
 
         return await interaction.reply({ embeds: [embed] });
       }
 
+      if (interaction.commandName === "hierarquia2") {
+        const cargos = [
+          "💀・COMANDO COTAR ・💀",
+          "💀・SUB-COMANDO COTAR ・💀",
+          "💀・Instrutor Cotar ・💀",
+          "💀・MEMBRO COTAR・💀",
+        ];
 
-	if (interaction.commandName === "hierarquia2") {
+        let descricao = "";
 
-  const cargos = [
-    "💀・COMANDO COTAR ・💀",
-	"💀・SUB-COMANDO COTAR ・💀",
-	"💀・Instrutor Cotar ・💀",
-	"💀・MEMBRO COTAR・💀",
-  ];
+        for (const cargoNome of cargos) {
+          const cargo = interaction.guild.roles.cache.find(
+            (r) => r.name.trim() === cargoNome.trim()
+          );
 
-  let descricao = "";
+          if (!cargo) continue;
 
-  for (const cargoNome of cargos) {
+          descricao += `\n**${cargoNome}**\n`;
 
-    const cargo = interaction.guild.roles.cache.find(
-      (r) => r.name.trim() === cargoNome.trim()
-    );
+          descricao += cargo.members.size
+            ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
+            : "Nenhum membro";
 
-    if (!cargo) continue;
+          descricao += "\n\n";
+        }
 
-    descricao += `\n**${cargoNome}**\n`;
+        const embed = new EmbedBuilder()
+          .setTitle("👑 Hierarquia COTAR")
+          .setColor("Yellow")
+          .setDescription(descricao || "Nenhum cargo encontrado.")
+          .setTimestamp();
 
-    descricao += cargo.members.size
-      ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
-      : "Nenhum membro";
+        return await interaction.reply({ embeds: [embed] });
+      }
 
-    descricao += "\n\n";
-  }
-
-  const embed = new EmbedBuilder()
-    .setTitle("👑 Hierarquia COTAR")
-    .setColor("Yelow")
-    .setDescription(descricao)
-    .setTimestamp();
-
-  return await interaction.reply({ embeds: [embed] });
-}
+      return;
+    }
 
     if (interaction.isButton()) {
       if (interaction.customId.startsWith("rank_prev:") || interaction.customId.startsWith("rank_next:")) {
@@ -772,11 +752,9 @@ client.on("interactionCreate", async (interaction) => {
           v.membros.push(id);
           registrarEntrada(v, id);
 
-
           const membro = ensureMember(id);
           membro.lastPatrolAt = Date.now();
           membro.patrolStart = Date.now();
- 6d0ac5c (att)
 
           if (!v.inicio) v.inicio = Date.now();
           if (!v.lider) v.lider = id;
@@ -921,18 +899,6 @@ client.on("interactionCreate", async (interaction) => {
         const p2 = equipeFinal[1] ? `<@${equipeFinal[1]}>` : "—";
         const p3 = equipeFinal[2] ? `<@${equipeFinal[2]}>` : "—";
         const p4 = equipeFinal[3] ? `<@${equipeFinal[3]}>` : "—";
-
-        for (const membroId of v.membros) {
-          const membro = ensureMember(membroId);
-
-          if (membro.patrolStart) {
-            const tempo = (Date.now() - membro.patrolStart) / 60000;
-
-            membro.weeklyTime += tempo;
-            membro.lastPatrolAt = Date.now();
-            membro.patrolStart = null;
-          }
-        }
 
         const embed = new EmbedBuilder()
           .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
