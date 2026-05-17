@@ -50,6 +50,16 @@ function saveDb() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
+function formatMinutes(min) {
+  const horas = Math.floor(min / 60);
+  const minutos = Math.floor(min % 60);
+
+  return `${horas.toString().padStart(2, "0")}h ${minutos
+    .toString()
+    .padStart(2, "0")}min`;
+}
+
+
 function ensureMember(id) {
   if (!db.membros) db.membros = {};
 
@@ -60,6 +70,10 @@ function ensureMember(id) {
       dinheiro: 0,
       tempo: 0,
       pontos: 0,
+      weeklyTime: 0,
+      lastPatrolAt: null,
+      patrolStart: null,
+      lastWeeklyReset: Date.now(),
     };
   }
 
@@ -473,6 +487,23 @@ const commands = [
   new SlashCommandBuilder()
     .setName("meurank")
     .setDescription("Ver seu desempenho individual"),
+
+  new SlashCommandBuilder()
+    .setName("atividade")
+    .setDescription("Ver atividade operacional"),
+
+  new SlashCommandBuilder()
+    .setName("tempo")
+    .setDescription("Ver tempo semanal"),
+
+  new SlashCommandBuilder()
+    .setName("hierarquia")
+    .setDescription("Ver hierarquia operacional"),
+	
+	new SlashCommandBuilder()
+  .setName("hierarquia2")
+  .setDescription("Ver segunda hierarquia"),
+
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
@@ -553,8 +584,159 @@ client.on("interactionCreate", async (interaction) => {
         return await interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
-      return;
-    }
+      if (interaction.commandName === "atividade") {
+        const membros = Object.entries(db.membros)
+          .sort((a, b) => (b[1].lastPatrolAt || 0) - (a[1].lastPatrolAt || 0))
+          .slice(0, 20);
+
+        const descricao = membros.map(([id, dados]) => {
+          if (!dados.lastPatrolAt) {
+            return `⚫ <@${id}> — Nunca participou`;
+          }
+
+          const minutos = Math.floor((Date.now() - dados.lastPatrolAt) / 60000);
+
+          if (minutos < 60) {
+            return `🟢 <@${id}> — há ${minutos} min`;
+          }
+
+          const horas = Math.floor(minutos / 60);
+
+          if (horas < 24) {
+            return `🟡 <@${id}> — há ${horas}h`;
+          }
+
+          const dias = Math.floor(horas / 24);
+
+          return `🔴 <@${id}> — há ${dias} dias`;
+        }).join("\n");
+
+        const embed = new EmbedBuilder()
+          .setTitle("📋 Atividade Operacional")
+          .setColor("Blue")
+          .setDescription(descricao)
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      if (interaction.commandName === "tempo") {
+        const META = 300;
+
+        const membros = Object.entries(db.membros)
+          .sort((a, b) => (b[1].weeklyTime || 0) - (a[1].weeklyTime || 0))
+          .slice(0, 20);
+
+        const descricao = membros.map(([id, dados]) => {
+          const tempo = dados.weeklyTime || 0;
+
+          let status = "🔴 Abaixo da meta";
+
+          if (tempo >= META) {
+            status = "🟢 Meta concluída";
+          } else if (tempo >= META * 0.7) {
+            status = "🟡 Próximo da meta";
+          }
+
+          return `<@${id}> | ⏱️ ${formatMinutes(tempo)} | ${status}`;
+        }).join("\n");
+
+        const embed = new EmbedBuilder()
+          .setTitle("📊 Controle Semanal")
+          .setColor("Gold")
+          .setDescription(descricao)
+          .addFields({
+            name: "📌 Meta semanal",
+            value: "05h 00min",
+          })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      if (interaction.commandName === "hierarquia") {
+        const cargos = [
+          "🇧🇷┊Coronel⭐⭐⭐",
+          "🇧🇷┊Tenente Coronel ✪   ✪  ★",
+          "🇧🇷┊Major ✪  ★  ★",
+          "🇧🇷┊Capitão ★  ★  ★",
+		  "🇧🇷┊1º Tenente ★ ★",
+		  "🇧🇷┊2º Tenente ★",
+		  "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
+		  "🇧🇷┊Sub-Tenente ★",
+		  "🇧🇷┊1º Sargento     .",
+		  "🇧🇷┊2° Sargento       .",
+		  "🇧🇷┊3° Sargento         .",
+		  "🇧🇷┊Cabo ︽          .",
+		  "🇧🇷┊Soldado ︿           .",
+		  "🇧🇷┊Recruta ︿         .",
+		  "🇧🇷┊Aposentado",
+        ];
+
+        let descricao = "";
+
+        for (const cargoNome of cargos) {
+          const cargo = interaction.guild.roles.cache.find(
+  (r) => r.name.trim() === cargoNome.trim()
+);
+
+          if (!cargo) continue;
+
+          descricao += `\n**${cargoNome}**\n`;
+
+          descricao += cargo.members.size
+            ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
+            : "Nenhum membro";
+
+          descricao += "\n\n";
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle("👑 Hierarquia BEPI")
+          .setColor("Purple")
+          .setDescription(descricao)
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+
+	if (interaction.commandName === "hierarquia2") {
+
+  const cargos = [
+    "💀・COMANDO COTAR ・💀",
+	"💀・SUB-COMANDO COTAR ・💀",
+	"💀・Instrutor Cotar ・💀",
+	"💀・MEMBRO COTAR・💀",
+  ];
+
+  let descricao = "";
+
+  for (const cargoNome of cargos) {
+
+    const cargo = interaction.guild.roles.cache.find(
+      (r) => r.name.trim() === cargoNome.trim()
+    );
+
+    if (!cargo) continue;
+
+    descricao += `\n**${cargoNome}**\n`;
+
+    descricao += cargo.members.size
+      ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
+      : "Nenhum membro";
+
+    descricao += "\n\n";
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle("👑 Hierarquia COTAR")
+    .setColor("Yelow")
+    .setDescription(descricao)
+    .setTimestamp();
+
+  return await interaction.reply({ embeds: [embed] });
+}
 
     if (interaction.isButton()) {
       if (interaction.customId.startsWith("rank_prev:") || interaction.customId.startsWith("rank_next:")) {
@@ -589,6 +771,12 @@ client.on("interactionCreate", async (interaction) => {
         if (!v.membros.includes(id) && v.membros.length < 4) {
           v.membros.push(id);
           registrarEntrada(v, id);
+
+
+          const membro = ensureMember(id);
+          membro.lastPatrolAt = Date.now();
+          membro.patrolStart = Date.now();
+ 6d0ac5c (att)
 
           if (!v.inicio) v.inicio = Date.now();
           if (!v.lider) v.lider = id;
@@ -733,6 +921,18 @@ client.on("interactionCreate", async (interaction) => {
         const p2 = equipeFinal[1] ? `<@${equipeFinal[1]}>` : "—";
         const p3 = equipeFinal[2] ? `<@${equipeFinal[2]}>` : "—";
         const p4 = equipeFinal[3] ? `<@${equipeFinal[3]}>` : "—";
+
+        for (const membroId of v.membros) {
+          const membro = ensureMember(membroId);
+
+          if (membro.patrolStart) {
+            const tempo = (Date.now() - membro.patrolStart) / 60000;
+
+            membro.weeklyTime += tempo;
+            membro.lastPatrolAt = Date.now();
+            membro.patrolStart = null;
+          }
+        }
 
         const embed = new EmbedBuilder()
           .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
