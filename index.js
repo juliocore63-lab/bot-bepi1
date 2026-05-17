@@ -639,7 +639,11 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "hierarquia") {
-        const cargos = [
+
+  await interaction.deferReply();
+  await interaction.guild.members.fetch();
+
+  const cargos = [
           "🇧🇷┊Coronel⭐⭐⭐",
           "🇧🇷┊Tenente Coronel ✪   ✪  ★",
           "🇧🇷┊Major ✪  ★  ★",
@@ -685,7 +689,11 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "hierarquia2") {
-        const cargos = [
+
+  await interaction.deferReply();
+  await interaction.guild.members.fetch();
+
+  const cargos = [
           "💀・COMANDO COTAR ・💀",
           "💀・SUB-COMANDO COTAR ・💀",
           "💀・Instrutor Cotar ・💀",
