@@ -639,9 +639,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "hierarquia") {
-
   await interaction.deferReply();
-  await interaction.guild.members.fetch();
 
   const cargos = [
           "🇧🇷┊Coronel⭐⭐⭐",
@@ -670,14 +668,13 @@ client.on("interactionCreate", async (interaction) => {
 
           if (!cargo) continue;
 
-          descricao += `\n**${cargoNome}**\n`;
+descricao += `\n**${cargoNome}**\n`;
 
-          descricao += cargo.members.size
-            ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
-            : "Nenhum membro";
+descricao += cargo.members.size
+  ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
+  : "Nenhum membro";
 
-          descricao += "\n\n";
-        }
+descricao += "\n\n";
 
         const embed = new EmbedBuilder()
           .setTitle("👑 Hierarquia BEPI")
@@ -689,9 +686,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "hierarquia2") {
-
   await interaction.deferReply();
-  await interaction.guild.members.fetch();
 
   const cargos = [
           "💀・COMANDO COTAR ・💀",
