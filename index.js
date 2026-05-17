@@ -416,6 +416,16 @@ function getRankingData(tipo) {
   };
 }
 
+function formatarMembrosCargo(cargo) {
+  if (!cargo.members.size) {
+    return "Nenhum membro possui esse cargo atualmente.";
+  }
+
+  return cargo.members
+    .map((membro) => `🟢 <@${membro.id}>`)
+    .join("\n");
+}
+
 const commands = [
   new SlashCommandBuilder()
     .setName("viatura")
@@ -478,7 +488,6 @@ client.once("ready", async () => {
 client.on("interactionCreate", async (interaction) => {
   try {
     if (interaction.isChatInputCommand()) {
-
       if (interaction.commandName === "viatura") {
         await interaction.deferReply();
 
@@ -549,24 +558,15 @@ client.on("interactionCreate", async (interaction) => {
           .slice(0, 20);
 
         const descricao = membros.map(([id, dados]) => {
-          if (!dados.lastPatrolAt) {
-            return `⚫ <@${id}> — Nunca participou`;
-          }
+          if (!dados.lastPatrolAt) return `⚫ <@${id}> — Nunca participou`;
 
           const minutos = Math.floor((Date.now() - dados.lastPatrolAt) / 60000);
-
-          if (minutos < 60) {
-            return `🟢 <@${id}> — há ${minutos} min`;
-          }
+          if (minutos < 60) return `🟢 <@${id}> — há ${minutos} min`;
 
           const horas = Math.floor(minutos / 60);
-
-          if (horas < 24) {
-            return `🟡 <@${id}> — há ${horas}h`;
-          }
+          if (horas < 24) return `🟡 <@${id}> — há ${horas}h`;
 
           const dias = Math.floor(horas / 24);
-
           return `🔴 <@${id}> — há ${dias} dias`;
         }).join("\n") || "Sem dados de atividade.";
 
@@ -590,12 +590,8 @@ client.on("interactionCreate", async (interaction) => {
           const tempo = dados.weeklyTime || 0;
 
           let status = "🔴 Abaixo da meta";
-
-          if (tempo >= META) {
-            status = "🟢 Meta concluída";
-          } else if (tempo >= META * 0.7) {
-            status = "🟡 Próximo da meta";
-          }
+          if (tempo >= META) status = "🟢 Meta concluída";
+          else if (tempo >= META * 0.7) status = "🟡 Próximo da meta";
 
           return `<@${id}> | ⏱️ ${formatMinutes(tempo)} | ${status}`;
         }).join("\n") || "Sem dados de tempo.";
@@ -614,7 +610,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "hierarquia") {
-
         const cargos = [
           "🇧🇷┊Coronel⭐⭐⭐",
           "🇧🇷┊Tenente Coronel ✪   ✪  ★",
@@ -642,12 +637,9 @@ client.on("interactionCreate", async (interaction) => {
 
           if (!cargo) continue;
 
-          descricao += `\n**${cargoNome}**\n`;
-
-          descricao += cargo.members.size
-            ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
-            : "Nenhum membro";
-
+          descricao += `\n**☠️ @${cargo.name}**\n`;
+          descricao += `${cargo.members.size} membros\n\n`;
+          descricao += formatarMembrosCargo(cargo);
           descricao += "\n\n";
         }
 
@@ -657,11 +649,13 @@ client.on("interactionCreate", async (interaction) => {
           .setDescription(descricao || "Nenhum cargo encontrado.")
           .setTimestamp();
 
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.reply({
+          embeds: [embed],
+          allowedMentions: { parse: [] },
+        });
       }
 
       if (interaction.commandName === "hierarquia2") {
-
         const cargos = [
           "💀・COMANDO COTAR ・💀",
           "💀・SUB-COMANDO COTAR ・💀",
@@ -678,12 +672,9 @@ client.on("interactionCreate", async (interaction) => {
 
           if (!cargo) continue;
 
-          descricao += `\n**${cargoNome}**\n`;
-
-          descricao += cargo.members.size
-            ? cargo.members.map((m) => `• ${m.user.username}`).join("\n")
-            : "Nenhum membro";
-
+          descricao += `\n**☠️ @${cargo.name}**\n`;
+          descricao += `${cargo.members.size} membros\n\n`;
+          descricao += formatarMembrosCargo(cargo);
           descricao += "\n\n";
         }
 
@@ -693,21 +684,21 @@ client.on("interactionCreate", async (interaction) => {
           .setDescription(descricao || "Nenhum cargo encontrado.")
           .setTimestamp();
 
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.reply({
+          embeds: [embed],
+          allowedMentions: { parse: [] },
+        });
       }
 
       return;
     }
 
     if (interaction.isButton()) {
-
       if (
         interaction.customId.startsWith("rank_prev:") ||
         interaction.customId.startsWith("rank_next:")
       ) {
-
         const [acao, tipo, pageStr] = interaction.customId.split(":");
-
         let page = parseInt(pageStr, 10);
 
         if (acao === "rank_prev") page--;
@@ -730,21 +721,16 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const [tipo, nomeRaw] = interaction.customId.split(":");
-
       const nome = nomeRaw.toUpperCase().trim();
       const v = ensureViatura(nome);
       const id = interaction.user.id;
 
       if (tipo === "entrar") {
-
         if (!v.membros.includes(id) && v.membros.length < 4) {
-
           v.membros.push(id);
-
           registrarEntrada(v, id);
 
           const membro = ensureMember(id);
-
           membro.lastPatrolAt = Date.now();
           membro.patrolStart = Date.now();
 
@@ -761,7 +747,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "lider") {
-
         if (!v.membros.includes(id)) {
           return await interaction.reply({
             content: "❌ Você precisa estar na viatura para virar líder.",
@@ -770,7 +755,6 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         v.lider = id;
-
         saveDb();
 
         return await interaction.update({
@@ -780,7 +764,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "sair") {
-
         if (!v.membros.includes(id)) {
           return await interaction.reply({
             content: "❌ Você não está nessa viatura.",
@@ -789,12 +772,9 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         registrarSaida(v, id);
-
         v.membros = v.membros.filter((u) => u !== id);
 
-        if (v.lider === id) {
-          v.lider = v.membros[0] || null;
-        }
+        if (v.lider === id) v.lider = v.membros[0] || null;
 
         if (v.membros.length === 0) {
           v.inicio = null;
@@ -813,7 +793,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "prisao") {
-
         if (!v.membros.includes(id)) {
           return await interaction.reply({
             content: "❌ Você precisa estar na viatura para registrar prisão.",
@@ -822,9 +801,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         v.prisoes += 1;
-
         registrarParaTodaViatura(v.membros, "prisao", 1);
-
         saveDb();
 
         return await interaction.update({
@@ -834,7 +811,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "ocorrencia") {
-
         if (!v.membros.includes(id)) {
           return await interaction.reply({
             content: "❌ Você precisa estar na viatura para registrar ocorrência.",
@@ -843,9 +819,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         v.ocorrencias += 1;
-
         registrarParaTodaViatura(v.membros, "ocorrencia", 1);
-
         saveDb();
 
         return await interaction.update({
@@ -855,7 +829,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "dinheiro") {
-
         if (!v.membros.includes(id)) {
           return await interaction.reply({
             content: "❌ Você precisa estar na viatura para registrar apreensão.",
@@ -874,15 +847,12 @@ client.on("interactionCreate", async (interaction) => {
           .setRequired(true)
           .setPlaceholder("Ex: 5000");
 
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(input)
-        );
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
 
         return await interaction.showModal(modal);
       }
 
       if (tipo === "finalizar") {
-
         if (!v.membros.includes(id)) {
           return await interaction.reply({
             content: "❌ Você precisa estar na viatura para finalizar.",
@@ -891,7 +861,6 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
-
         const equipeFinal = [...v.membros];
 
         for (const membroId of equipeFinal) {
@@ -928,10 +897,7 @@ client.on("interactionCreate", async (interaction) => {
         try {
           if (process.env.LOG_CHANNEL) {
             const canal = await client.channels.fetch(process.env.LOG_CHANNEL);
-
-            if (canal) {
-              await canal.send({ embeds: [embed] });
-            }
+            if (canal) await canal.send({ embeds: [embed] });
           }
         } catch (error) {
           console.error("Erro ao enviar log:", error);
@@ -963,14 +929,9 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     if (interaction.isModalSubmit()) {
-
       const [, nomeRaw] = interaction.customId.split(":");
-
       const nome = nomeRaw.toUpperCase().trim();
-
-      const valorTexto =
-        interaction.fields.getTextInputValue("valor");
-
+      const valorTexto = interaction.fields.getTextInputValue("valor");
       const valor = parseInt(valorTexto, 10);
 
       if (Number.isNaN(valor) || valor <= 0) {
@@ -981,7 +942,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const v = ensureViatura(nome);
-
       const id = interaction.user.id;
 
       if (!v.membros.includes(id)) {
@@ -992,9 +952,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       v.dinheiro += valor;
-
       registrarParaTodaViatura(v.membros, "dinheiro", valor);
-
       saveDb();
 
       return await interaction.reply({
@@ -1002,24 +960,19 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
       });
     }
-
   } catch (error) {
-
     console.error("Erro geral:");
     console.error(error);
 
     if (!interaction.isRepliable()) return;
 
     try {
-
       if (!interaction.deferred && !interaction.replied) {
-
         await interaction.reply({
           content: "❌ Ocorreu um erro.",
           ephemeral: true,
         });
       }
-
     } catch (e) {
       console.error(e);
     }
