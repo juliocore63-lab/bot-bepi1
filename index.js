@@ -433,69 +433,101 @@ function getRankingData(tipo) {
   };
 }
 
-function formatarMembrosCargo(cargo) {
-  if (!cargo.members.size) {
+function formatarMembrosCargo(guild, cargoInfo) {
+  const cargo = guild.roles.cache.get(cargoInfo.id);
+
+  if (!cargo) {
+    return "⚠️ Cargo não encontrado pelo ID.";
+  }
+
+  const membros = guild.members.cache.filter((membro) =>
+    membro.roles.cache.has(cargo.id)
+  );
+
+  if (!membros.size) {
     return "Nenhum membro possui esse cargo atualmente.";
   }
 
-  return cargo.members.map((membro) => `🟢 <@${membro.id}>`).join("\n");
+  return membros.map((membro) => `• <@${membro.id}>`).join("\n");
 }
-
-const gruposHierarquia = [
-  {
-    titulo: "⭐ Alto Comando & Oficiais ⭐",
-    cargos: [
-      "🇧🇷┊Aposentado",
-      "🇧🇷┊Coronel⭐⭐⭐",
-      "🇧🇷┊Tenente Coronel ✪   ✪  ★",
-      "🇧🇷┊Major ✪  ★  ★",
-      "🇧🇷┊Capitão ★  ★  ★",
-    ],
-  },
-  {
-    titulo: "💠 Oficiais Subalternos & Graduados 💠",
-    cargos: [
-      "🇧🇷┊1º Tenente ★ ★",
-      "🇧🇷┊2º Tenente ★",
-      "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
-      "🇧🇷┊Sub-Tenente ★",
-      "🇧🇷┊1º Sargento     .",
-      "🇧🇷┊2° Sargento       .",
-      "🇧🇷┊3° Sargento         .",
-    ],
-  },
-  {
-    titulo: "---Praças---",
-    cargos:	[
-	"🇧🇷┊Cabo ︽          .",
-	"🇧🇷┊Soldado ︿           .",
-	"🇧🇷┊Recruta ︿         ."
-	],
-  },
-];
 
 function montarEmbedHierarquia(guild, grupo) {
   let descricao = "";
 
-  for (const cargoNome of grupo.cargos) {
-    const cargo = guild.roles.cache.find(
-      (r) => r.name.trim() === cargoNome.trim()
+  for (const cargoInfo of grupo.cargos) {
+    descricao += `\n**☠️ @${cargoInfo.nome}**\n`;
+
+    const cargo = guild.roles.cache.get(cargoInfo.id);
+
+    if (!cargo) {
+      descricao += "⚠️ Cargo não encontrado pelo ID.\n\n";
+      continue;
+    }
+
+    const membros = guild.members.cache.filter((membro) =>
+      membro.roles.cache.has(cargo.id)
     );
 
-    if (!cargo) continue;
-
-    descricao += `\n**☠️ @${cargo.name}**\n`;
-    descricao += `${cargo.members.size} membros\n\n`;
-    descricao += formatarMembrosCargo(cargo);
+    descricao += `${membros.size} membros\n\n`;
+    descricao += formatarMembrosCargo(guild, cargoInfo);
     descricao += "\n\n";
   }
 
   return new EmbedBuilder()
     .setTitle(grupo.titulo)
-    .setColor("Purple")
-    .setDescription(descricao || "Nenhum cargo encontrado.")
+    .setColor(grupo.cor || "Purple")
+    .setDescription(descricao || "Nenhum cargo configurado.")
     .setTimestamp();
 }
+
+const gruposHierarquia = [
+  {
+    titulo: "⭐ Alto Comando & Oficiais ⭐",
+    cor: "Purple",
+    cargos: [
+      { nome: "BR ¦ Aposentado", id: "1505273752462688476" },
+      { nome: "BR ¦ Coronel ⭐ ⭐ ⭐", id: "1141776577328324669" },
+      { nome: "BR ¦ Tenente Coronel ✪ ✪ ★", id: "1141776588749418626" },
+      { nome: "BR ¦ Major ✪ ★ ★", id: "1141776589605060618" },
+      { nome: "BR ¦ Capitão ★ ★ ★", id: "1141776591496679504" },
+    ],
+  },
+  {
+    titulo: "💠 Oficiais Subalternos & Graduados 💠",
+    cor: "Purple",
+    cargos: [
+      { nome: "BR ¦ 1º Tenente ★★", id: "1141776594420105287" },
+      { nome: "BR ¦ 2º Tenente ★", id: "1141776596257226803" },
+      { nome: "BR ¦ Aspirante a Oficial ✪ ✪ ✪", id: "1141776586740350978" },
+      { nome: "BR ¦ Sub-Tenente ★", id: "1498676034328068187" },
+      { nome: "BR ¦ 1º Sargento .", id: "1141776600598335582" },
+      { nome: "BR ¦ 2º Sargento .", id: "1141776601701433414" },
+      { nome: "BR ¦ 3º Sargento .", id: "1141776602703867914" },
+    ],
+  },
+  {
+    titulo: "---Praças---",
+    cor: "Purple",
+    cargos: [
+      { nome: "BR ¦ Cabo ︽.", id: "1141776603949580349" },
+      { nome: "BR ¦ Soldado ︿.", id: "1141776605123977327" },
+      { nome: "BR ¦ Recruta ︿.", id: "1465100597152841892" },
+    ],
+  },
+];
+
+const gruposHierarquia2 = [
+  {
+    titulo: "👑 Hierarquia COTAR",
+    cor: "Yellow",
+    cargos: [
+      { nome: "💀・COMANDO COTAR ・💀", id: "1482090447500214463" },
+      { nome: "💀・SUB-COMANDO COTAR ・💀", id: "1482092770184269885" },
+      { nome: "💀・Instrutor Cotar ・💀", id: "1484975335929024702" },
+      { nome: "💀・MEMBRO COTAR・💀", id: "1482090531835220140" },
+    ],
+  },
+];
 
 const commands = [
   new SlashCommandBuilder()
@@ -564,6 +596,9 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.isChatInputCommand()) {
 
+      // =========================
+      // /VIATURA
+      // =========================
       if (interaction.commandName === "viatura") {
 
         await interaction.deferReply();
@@ -580,89 +615,128 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
+      // =========================
+      // /RANKING
+      // =========================
       if (interaction.commandName === "ranking") {
 
-        const { titulo, stats } = getRankingData("geral");
+        const { titulo, stats } =
+          getRankingData("geral");
 
-        const pages = buildRankingPages(stats, titulo);
-
-        return await interaction.reply({
-          embeds: [pages[0]],
-          components: buildRankingButtons(
-            "geral",
-            0,
-            pages.length
-          ),
-        });
-      }
-
-      if (interaction.commandName === "rankingsemanal") {
-
-        const { titulo, stats } = getRankingData("semanal");
-
-        const pages = buildRankingPages(stats, titulo);
+        const pages =
+          buildRankingPages(stats, titulo);
 
         return await interaction.reply({
           embeds: [pages[0]],
-          components: buildRankingButtons(
-            "semanal",
-            0,
-            pages.length
-          ),
+          components:
+            buildRankingButtons(
+              "geral",
+              0,
+              pages.length
+            ),
         });
       }
 
-      if (interaction.commandName === "rankingmensal") {
+      // =========================
+      // /RANKINGSEMANAL
+      // =========================
+      if (
+        interaction.commandName ===
+        "rankingsemanal"
+      ) {
 
-        const { titulo, stats } = getRankingData("mensal");
+        const { titulo, stats } =
+          getRankingData("semanal");
 
-        const pages = buildRankingPages(stats, titulo);
+        const pages =
+          buildRankingPages(stats, titulo);
 
         return await interaction.reply({
           embeds: [pages[0]],
-          components: buildRankingButtons(
-            "mensal",
-            0,
-            pages.length
-          ),
+          components:
+            buildRankingButtons(
+              "semanal",
+              0,
+              pages.length
+            ),
         });
       }
 
-      if (interaction.commandName === "meurank") {
+      // =========================
+      // /RANKINGMENSAL
+      // =========================
+      if (
+        interaction.commandName ===
+        "rankingmensal"
+      ) {
 
-        const m = ensureMember(interaction.user.id);
+        const { titulo, stats } =
+          getRankingData("mensal");
 
-        const embed = new EmbedBuilder()
-          .setTitle("📋 Seu Desempenho Geral")
-          .setColor("Blue")
-          .addFields(
-            {
-              name: "⏱️ Tempo",
-              value: `${m.tempo.toFixed(1)} min`,
-              inline: true,
-            },
-            {
-              name: "🚔 Prisões",
-              value: String(m.prisoes),
-              inline: true,
-            },
-            {
-              name: "📦 Ocorrências",
-              value: String(m.ocorrencias),
-              inline: true,
-            },
-            {
-              name: "💰 Dinheiro",
-              value: `R$${m.dinheiro}`,
-              inline: true,
-            },
-            {
-              name: "🏆 Pontos",
-              value: String(m.pontos),
-              inline: true,
-            }
-          )
-          .setTimestamp();
+        const pages =
+          buildRankingPages(stats, titulo);
+
+        return await interaction.reply({
+          embeds: [pages[0]],
+          components:
+            buildRankingButtons(
+              "mensal",
+              0,
+              pages.length
+            ),
+        });
+      }
+
+      // =========================
+      // /MEURANK
+      // =========================
+      if (
+        interaction.commandName ===
+        "meurank"
+      ) {
+
+        const m = ensureMember(
+          interaction.user.id
+        );
+
+        const embed =
+          new EmbedBuilder()
+            .setTitle(
+              "📋 Seu Desempenho Geral"
+            )
+            .setColor("Blue")
+            .addFields(
+              {
+                name: "⏱️ Tempo",
+                value: `${m.tempo.toFixed(
+                  1
+                )} min`,
+                inline: true,
+              },
+              {
+                name: "🚔 Prisões",
+                value: String(m.prisoes),
+                inline: true,
+              },
+              {
+                name: "📦 Ocorrências",
+                value: String(
+                  m.ocorrencias
+                ),
+                inline: true,
+              },
+              {
+                name: "💰 Dinheiro",
+                value: `R$${m.dinheiro}`,
+                inline: true,
+              },
+              {
+                name: "🏆 Pontos",
+                value: String(m.pontos),
+                inline: true,
+              }
+            )
+            .setTimestamp();
 
         return await interaction.reply({
           embeds: [embed],
@@ -670,168 +744,302 @@ client.on("interactionCreate", async (interaction) => {
         });
       }
 
-      if (interaction.commandName === "atividade") {
+      // =========================
+      // /ATIVIDADE
+      // =========================
+      if (
+        interaction.commandName ===
+        "atividade"
+      ) {
 
-        const membros = Object.entries(db.membros)
-          .sort(
-            (a, b) =>
-              (b[1].lastPatrolAt || 0) -
-              (a[1].lastPatrolAt || 0)
-          )
-          .slice(0, 20);
+        const membros =
+          Object.entries(db.membros)
+            .sort(
+              (a, b) =>
+                (b[1]
+                  .lastPatrolAt || 0) -
+                (a[1]
+                  .lastPatrolAt || 0)
+            )
+            .slice(0, 20);
 
         const descricao =
           membros
             .map(([id, dados]) => {
 
-              if (!dados.lastPatrolAt) {
+              if (
+                !dados.lastPatrolAt
+              ) {
                 return `⚫ <@${id}> — Nunca participou`;
               }
 
-              const minutos = Math.floor(
-                (Date.now() - dados.lastPatrolAt) / 60000
-              );
+              const minutos =
+                Math.floor(
+                  (Date.now() -
+                    dados.lastPatrolAt) /
+                    60000
+                );
 
               if (minutos < 60) {
                 return `🟢 <@${id}> — há ${minutos} min`;
               }
 
-              const horas = Math.floor(minutos / 60);
+              const horas =
+                Math.floor(
+                  minutos / 60
+                );
 
               if (horas < 24) {
                 return `🟡 <@${id}> — há ${horas}h`;
               }
 
-              const dias = Math.floor(horas / 24);
+              const dias =
+                Math.floor(
+                  horas / 24
+                );
 
               return `🔴 <@${id}> — há ${dias} dias`;
             })
-            .join("\n") || "Sem dados.";
+            .join("\n") ||
+          "Sem dados.";
 
-        const embed = new EmbedBuilder()
-          .setTitle("📋 Atividade Operacional")
-          .setColor("Blue")
-          .setDescription(descricao)
-          .setTimestamp();
+        const embed =
+          new EmbedBuilder()
+            .setTitle(
+              "📋 Atividade Operacional"
+            )
+            .setColor("Blue")
+            .setDescription(
+              descricao
+            )
+            .setTimestamp();
 
         return await interaction.reply({
           embeds: [embed],
         });
       }
 
-      if (interaction.commandName === "tempo") {
+      // =========================
+      // /TEMPO
+      // =========================
+      if (
+        interaction.commandName ===
+        "tempo"
+      ) {
 
         const META = 300;
 
-        const membros = Object.entries(db.membros)
-          .sort(
-            (a, b) =>
-              (b[1].weeklyTime || 0) -
-              (a[1].weeklyTime || 0)
-          )
-          .slice(0, 20);
+        const membros =
+          Object.entries(db.membros)
+            .sort(
+              (a, b) =>
+                (b[1]
+                  .weeklyTime || 0) -
+                (a[1]
+                  .weeklyTime || 0)
+            )
+            .slice(0, 20);
 
         const descricao =
           membros
             .map(([id, dados]) => {
 
-              const tempo = dados.weeklyTime || 0;
+              const tempo =
+                dados.weeklyTime || 0;
 
-              let status = "🔴 Abaixo da meta";
+              let status =
+                "🔴 Abaixo da meta";
 
               if (tempo >= META) {
-                status = "🟢 Meta concluída";
-              } else if (tempo >= META * 0.7) {
-                status = "🟡 Próximo da meta";
+                status =
+                  "🟢 Meta concluída";
+              } else if (
+                tempo >= META * 0.7
+              ) {
+                status =
+                  "🟡 Próximo da meta";
               }
 
               return `<@${id}> | ⏱️ ${formatMinutes(
                 tempo
               )} | ${status}`;
             })
-            .join("\n") || "Sem dados.";
+            .join("\n") ||
+          "Sem dados.";
 
-        const embed = new EmbedBuilder()
-          .setTitle("📊 Controle Semanal")
-          .setColor("Gold")
-          .setDescription(descricao)
-          .addFields({
-            name: "📌 Meta semanal",
-            value: "05h 00min",
-          })
-          .setTimestamp();
+        const embed =
+          new EmbedBuilder()
+            .setTitle(
+              "📊 Controle Semanal"
+            )
+            .setColor("Gold")
+            .setDescription(
+              descricao
+            )
+            .addFields({
+              name: "📌 Meta semanal",
+              value:
+                "05h 00min",
+            })
+            .setTimestamp();
 
         return await interaction.reply({
           embeds: [embed],
         });
       }
 
+      // =========================
+      // /HIERARQUIA
+      // =========================
       if (
-        interaction.commandName === "hierarquia" ||
-        interaction.commandName === "hierarquia2"
+        interaction.commandName ===
+        "hierarquia"
       ) {
 
-        const embeds = gruposHierarquia.map((grupo) =>
-          montarEmbedHierarquia(interaction.guild, grupo)
-        );
+        await interaction.guild.members.fetch();
+
+        const embeds = [];
+
+        for (const grupo of gruposHierarquia) {
+          embeds.push(
+            montarEmbedHierarquia(
+              interaction.guild,
+              grupo
+            )
+          );
+        }
 
         return await interaction.reply({
           embeds,
-          allowedMentions: { parse: [] },
+          allowedMentions: {
+            parse: [],
+          },
+        });
+      }
+
+      // =========================
+      // /HIERARQUIA2
+      // =========================
+      if (
+        interaction.commandName ===
+        "hierarquia2"
+      ) {
+
+        await interaction.guild.members.fetch();
+
+        const embeds = [];
+
+        for (const grupo of gruposHierarquia2) {
+          embeds.push(
+            montarEmbedHierarquia(
+              interaction.guild,
+              grupo
+            )
+          );
+        }
+
+        return await interaction.reply({
+          embeds,
+          allowedMentions: {
+            parse: [],
+          },
         });
       }
 
       return;
     }
 
+    // =====================================
+    // BOTÕES
+    // =====================================
     if (interaction.isButton()) {
 
+      // =========================
+      // PAGINAÇÃO RANK
+      // =========================
       if (
-        interaction.customId.startsWith("rank_prev:") ||
-        interaction.customId.startsWith("rank_next:")
+        interaction.customId.startsWith(
+          "rank_prev:"
+        ) ||
+        interaction.customId.startsWith(
+          "rank_next:"
+        )
       ) {
 
-        const [acao, tipo, pageStr] =
-          interaction.customId.split(":");
+        const [
+          acao,
+          tipo,
+          pageStr,
+        ] =
+          interaction.customId.split(
+            ":"
+          );
 
-        let page = parseInt(pageStr, 10);
+        let page =
+          parseInt(pageStr);
 
-        if (acao === "rank_prev") page--;
-        if (acao === "rank_next") page++;
+        if (acao === "rank_prev")
+          page--;
 
-        const { titulo, stats } = getRankingData(tipo);
+        if (acao === "rank_next")
+          page++;
 
-        const pages = buildRankingPages(stats, titulo);
+        const { titulo, stats } =
+          getRankingData(tipo);
 
-        if (page < 0) page = 0;
+        const pages =
+          buildRankingPages(stats, titulo);
+
+        if (page < 0)
+          page = 0;
+
         if (page >= pages.length)
           page = pages.length - 1;
 
         return await interaction.update({
           embeds: [pages[page]],
-          components: buildRankingButtons(
-            tipo,
-            page,
-            pages.length
-          ),
+          components:
+            buildRankingButtons(
+              tipo,
+              page,
+              pages.length
+            ),
         });
       }
 
+      // =========================
+      // BOTÃO INFO RANK
+      // =========================
       if (
-        interaction.customId.startsWith("rank_info:")
+        interaction.customId.startsWith(
+          "rank_info:"
+        )
       ) {
         return await interaction.deferUpdate();
       }
 
-      const [tipo, nomeRaw] =
-        interaction.customId.split(":");
+      const [
+        tipo,
+        nomeRaw,
+      ] =
+        interaction.customId.split(
+          ":"
+        );
 
-      const nome = nomeRaw.toUpperCase().trim();
+      const nome =
+        nomeRaw
+          .toUpperCase()
+          .trim();
 
-      const v = ensureViatura(nome);
+      const v =
+        ensureViatura(nome);
 
-      const id = interaction.user.id;
+      const id =
+        interaction.user.id;
 
+      // =========================
+      // ENTRAR
+      // =========================
       if (tipo === "entrar") {
 
         if (
@@ -843,27 +1051,42 @@ client.on("interactionCreate", async (interaction) => {
 
           registrarEntrada(v, id);
 
-          const membro = ensureMember(id);
+          const membro =
+            ensureMember(id);
 
-          membro.lastPatrolAt = Date.now();
-          membro.patrolStart = Date.now();
+          membro.lastPatrolAt =
+            Date.now();
 
-          if (!v.inicio) v.inicio = Date.now();
+          membro.patrolStart =
+            Date.now();
 
-          if (!v.lider) v.lider = id;
+          if (!v.inicio)
+            v.inicio = Date.now();
+
+          if (!v.lider)
+            v.lider = id;
 
           saveDb();
         }
 
         return await interaction.update({
-          content: buildPainelContent(nome),
-          components: buildButtons(nome),
+          content:
+            buildPainelContent(
+              nome
+            ),
+          components:
+            buildButtons(nome),
         });
       }
 
+      // =========================
+      // LÍDER
+      // =========================
       if (tipo === "lider") {
 
-        if (!v.membros.includes(id)) {
+        if (
+          !v.membros.includes(id)
+        ) {
           return await interaction.reply({
             content:
               "❌ Você precisa estar na viatura.",
@@ -876,14 +1099,23 @@ client.on("interactionCreate", async (interaction) => {
         saveDb();
 
         return await interaction.update({
-          content: buildPainelContent(nome),
-          components: buildButtons(nome),
+          content:
+            buildPainelContent(
+              nome
+            ),
+          components:
+            buildButtons(nome),
         });
       }
 
+      // =========================
+      // SAIR
+      // =========================
       if (tipo === "sair") {
 
-        if (!v.membros.includes(id)) {
+        if (
+          !v.membros.includes(id)
+        ) {
           return await interaction.reply({
             content:
               "❌ Você não está nessa viatura.",
@@ -893,15 +1125,19 @@ client.on("interactionCreate", async (interaction) => {
 
         registrarSaida(v, id);
 
-        v.membros = v.membros.filter(
-          (u) => u !== id
-        );
+        v.membros =
+          v.membros.filter(
+            (u) => u !== id
+          );
 
         if (v.lider === id) {
-          v.lider = v.membros[0] || null;
+          v.lider =
+            v.membros[0] || null;
         }
 
-        if (v.membros.length === 0) {
+        if (
+          v.membros.length === 0
+        ) {
           v.inicio = null;
           v.prisoes = 0;
           v.ocorrencias = 0;
@@ -912,14 +1148,23 @@ client.on("interactionCreate", async (interaction) => {
         saveDb();
 
         return await interaction.update({
-          content: buildPainelContent(nome),
-          components: buildButtons(nome),
+          content:
+            buildPainelContent(
+              nome
+            ),
+          components:
+            buildButtons(nome),
         });
       }
 
+      // =========================
+      // PRISÃO
+      // =========================
       if (tipo === "prisao") {
 
-        if (!v.membros.includes(id)) {
+        if (
+          !v.membros.includes(id)
+        ) {
           return await interaction.reply({
             content:
               "❌ Você precisa estar na viatura.",
@@ -938,14 +1183,25 @@ client.on("interactionCreate", async (interaction) => {
         saveDb();
 
         return await interaction.update({
-          content: buildPainelContent(nome),
-          components: buildButtons(nome),
+          content:
+            buildPainelContent(
+              nome
+            ),
+          components:
+            buildButtons(nome),
         });
       }
 
-      if (tipo === "ocorrencia") {
+      // =========================
+      // OCORRÊNCIA
+      // =========================
+      if (
+        tipo === "ocorrencia"
+      ) {
 
-        if (!v.membros.includes(id)) {
+        if (
+          !v.membros.includes(id)
+        ) {
           return await interaction.reply({
             content:
               "❌ Você precisa estar na viatura.",
@@ -964,14 +1220,23 @@ client.on("interactionCreate", async (interaction) => {
         saveDb();
 
         return await interaction.update({
-          content: buildPainelContent(nome),
-          components: buildButtons(nome),
+          content:
+            buildPainelContent(
+              nome
+            ),
+          components:
+            buildButtons(nome),
         });
       }
 
+      // =========================
+      // DINHEIRO
+      // =========================
       if (tipo === "dinheiro") {
 
-        if (!v.membros.includes(id)) {
+        if (
+          !v.membros.includes(id)
+        ) {
           return await interaction.reply({
             content:
               "❌ Você precisa estar na viatura.",
@@ -979,27 +1244,52 @@ client.on("interactionCreate", async (interaction) => {
           });
         }
 
-        const modal = new ModalBuilder()
-          .setCustomId(`modal:${nome}`)
-          .setTitle("Registrar Apreensão");
+        const modal =
+          new ModalBuilder()
+            .setCustomId(
+              `modal:${nome}`
+            )
+            .setTitle(
+              "Registrar Apreensão"
+            );
 
-        const input = new TextInputBuilder()
-          .setCustomId("valor")
-          .setLabel("Valor apreendido")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setPlaceholder("Ex: 5000");
+        const input =
+          new TextInputBuilder()
+            .setCustomId(
+              "valor"
+            )
+            .setLabel(
+              "Valor apreendido"
+            )
+            .setStyle(
+              TextInputStyle.Short
+            )
+            .setRequired(true)
+            .setPlaceholder(
+              "Ex: 5000"
+            );
 
         modal.addComponents(
-          new ActionRowBuilder().addComponents(input)
+          new ActionRowBuilder().addComponents(
+            input
+          )
         );
 
-        return await interaction.showModal(modal);
+        return await interaction.showModal(
+          modal
+        );
       }
 
-      if (tipo === "finalizar") {
+      // =========================
+      // FINALIZAR
+      // =========================
+      if (
+        tipo === "finalizar"
+      ) {
 
-        if (!v.membros.includes(id)) {
+        if (
+          !v.membros.includes(id)
+        ) {
           return await interaction.reply({
             content:
               "❌ Você precisa estar na viatura.",
@@ -1007,90 +1297,124 @@ client.on("interactionCreate", async (interaction) => {
           });
         }
 
-        const lider = v.lider
-          ? `<@${v.lider}>`
-          : "Nenhum";
+        const lider =
+          v.lider
+            ? `<@${v.lider}>`
+            : "Nenhum";
 
-        const equipeFinal = [...v.membros];
+        const equipeFinal = [
+          ...v.membros,
+        ];
 
         for (const membroId of equipeFinal) {
-          registrarSaida(v, membroId);
+          registrarSaida(
+            v,
+            membroId
+          );
         }
 
-        const tempoTotal = v.inicio
-          ? (
-              (Date.now() - v.inicio) /
-              60000
-            ).toFixed(1)
-          : "0.0";
+        const tempoTotal =
+          v.inicio
+            ? (
+                (Date.now() -
+                  v.inicio) /
+                60000
+              ).toFixed(1)
+            : "0.0";
 
-        const embed = new EmbedBuilder()
-          .setTitle(
-            `🚔 RELATÓRIO FINAL - ${nome}`
-          )
-          .setColor("Red")
-          .addFields(
-            {
-              name: "⭐ Comandante",
-              value: lider,
-              inline: false,
-            },
-            {
-              name: "🚓 Viatura",
-              value: nome.toUpperCase(),
-              inline: true,
-            },
-            {
-              name: "⏱️ Tempo",
-              value: `${tempoTotal} min`,
-              inline: true,
-            },
-            {
-              name: "💰 Dinheiro",
-              value: `R$${v.dinheiro}`,
-              inline: true,
-            },
-            {
-              name: "🚔 Prisões",
-              value: String(v.prisoes),
-              inline: true,
-            },
-            {
-              name: "📦 Ocorrências",
-              value: String(v.ocorrencias),
-              inline: true,
-            },
-            {
-              name: "👮 Equipe",
-              value:
-                equipeFinal
-                  .map((id) => `<@${id}>`)
-                  .join("\n") || "Nenhum",
-              inline: false,
-            },
-            {
-              name: "⏱️ Tempo Individual",
-              value: formatTempoIndividual(
-                v,
-                equipeFinal
-              ),
-              inline: false,
-            }
-          )
-          .setTimestamp();
+        const embed =
+          new EmbedBuilder()
+            .setTitle(
+              `🚔 RELATÓRIO FINAL - ${nome}`
+            )
+            .setColor("Red")
+            .addFields(
+              {
+                name:
+                  "⭐ Comandante",
+                value: lider,
+              },
+              {
+                name:
+                  "🚓 Viatura",
+                value:
+                  nome.toUpperCase(),
+                inline: true,
+              },
+              {
+                name:
+                  "⏱️ Tempo",
+                value:
+                  `${tempoTotal} min`,
+                inline: true,
+              },
+              {
+                name:
+                  "💰 Dinheiro",
+                value:
+                  `R$${v.dinheiro}`,
+                inline: true,
+              },
+              {
+                name:
+                  "🚔 Prisões",
+                value:
+                  String(
+                    v.prisoes
+                  ),
+                inline: true,
+              },
+              {
+                name:
+                  "📦 Ocorrências",
+                value:
+                  String(
+                    v.ocorrencias
+                  ),
+                inline: true,
+              },
+              {
+                name:
+                  "👮 Equipe",
+                value:
+                  equipeFinal
+                    .map(
+                      (id) =>
+                        `<@${id}>`
+                    )
+                    .join("\n") ||
+                  "Nenhum",
+              },
+              {
+                name:
+                  "⏱️ Tempo Individual",
+                value:
+                  formatTempoIndividual(
+                    v,
+                    equipeFinal
+                  ),
+              }
+            )
+            .setTimestamp();
 
         try {
 
-          if (process.env.LOG_CHANNEL) {
+          if (
+            process.env
+              .LOG_CHANNEL
+          ) {
 
             const canal =
               await client.channels.fetch(
-                process.env.LOG_CHANNEL
+                process.env
+                  .LOG_CHANNEL
               );
 
             if (canal) {
               await canal.send({
-                embeds: [embed],
+                embeds: [
+                  embed,
+                ],
               });
             }
           }
@@ -1118,7 +1442,8 @@ client.on("interactionCreate", async (interaction) => {
         saveDb();
 
         return await interaction.update({
-          content: "✅ Patrulha finalizada.",
+          content:
+            "✅ Patrulha finalizada.",
           embeds: [embed],
           components: [],
         });
@@ -1127,35 +1452,55 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
+    // =====================================
+    // MODAL DINHEIRO
+    // =====================================
     if (interaction.isModalSubmit()) {
 
-      const [, nomeRaw] =
-        interaction.customId.split(":");
+      const [
+        ,
+        nomeRaw,
+      ] =
+        interaction.customId.split(
+          ":"
+        );
 
-      const nome = nomeRaw.toUpperCase().trim();
+      const nome =
+        nomeRaw
+          .toUpperCase()
+          .trim();
 
       const valorTexto =
         interaction.fields.getTextInputValue(
           "valor"
         );
 
-      const valor = parseInt(valorTexto, 10);
+      const valor =
+        parseInt(
+          valorTexto,
+          10
+        );
 
       if (
         Number.isNaN(valor) ||
         valor <= 0
       ) {
         return await interaction.reply({
-          content: "❌ Digite um valor válido.",
+          content:
+            "❌ Digite um valor válido.",
           ephemeral: true,
         });
       }
 
-      const v = ensureViatura(nome);
+      const v =
+        ensureViatura(nome);
 
-      const id = interaction.user.id;
+      const id =
+        interaction.user.id;
 
-      if (!v.membros.includes(id)) {
+      if (
+        !v.membros.includes(id)
+      ) {
         return await interaction.reply({
           content:
             "❌ Você precisa estar na viatura.",
@@ -1174,90 +1519,169 @@ client.on("interactionCreate", async (interaction) => {
       saveDb();
 
       return await interaction.reply({
-        content: `💰 R$${valor} registrado na viatura ${nome}.`,
+        content:
+          `💰 R$${valor} registrado na viatura ${nome}.`,
         ephemeral: true,
       });
     }
 
   } catch (error) {
 
-    console.error("Erro geral:");
     console.error(error);
 
-    if (!interaction.isRepliable()) return;
+    if (
+      !interaction.deferred &&
+      !interaction.replied
+    ) {
 
-    try {
-
-      if (
-        !interaction.deferred &&
-        !interaction.replied
-      ) {
-
-        await interaction.reply({
-          content:
-            "❌ Ocorreu um erro.",
-          ephemeral: true,
-        });
-      }
-
-    } catch (e) {
-      console.error(e);
+      await interaction.reply({
+        content:
+          "❌ Ocorreu um erro.",
+        ephemeral: true,
+      });
     }
   }
 });
 
+// =====================================
+// AUTO UPDATE HIERARQUIA
+// =====================================
 client.on(
   "guildMemberUpdate",
-  async (oldMember, newMember) => {
+  async (
+    oldMember,
+    newMember
+  ) => {
 
     try {
 
-      if (!process.env.HIERARQUIA_CHANNEL)
-        return;
+      await newMember.guild.members.fetch();
 
-      const canal =
-        await client.channels.fetch(
-          process.env.HIERARQUIA_CHANNEL
-        );
+      // =========================
+      // HIERARQUIA 1
+      // =========================
+      if (
+        process.env
+          .HIERARQUIA_CHANNEL
+      ) {
 
-      const mensagens =
-        await canal.messages.fetch({
-          limit: 20,
-        });
-
-      for (const grupo of gruposHierarquia) {
-
-        const embed =
-          montarEmbedHierarquia(
-            newMember.guild,
-            grupo
+        const canal =
+          await client.channels.fetch(
+            process.env
+              .HIERARQUIA_CHANNEL
           );
 
-        const mensagemExistente =
-          mensagens.find(
-            (m) =>
-              m.author.id === client.user.id &&
-              m.embeds[0]?.title ===
-                grupo.titulo
+        const mensagens =
+          await canal.messages.fetch({
+            limit: 30,
+          });
+
+        for (const grupo of gruposHierarquia) {
+
+          const embed =
+            montarEmbedHierarquia(
+              newMember.guild,
+              grupo
+            );
+
+          const msg =
+            mensagens.find(
+              (m) =>
+                m.author.id ===
+                  client.user.id &&
+                m.embeds[0]
+                  ?.title ===
+                  grupo.titulo
+            );
+
+          if (msg) {
+
+            await msg.edit({
+              embeds: [
+                embed,
+              ],
+              allowedMentions:
+                {
+                  parse: [],
+                },
+            });
+
+          } else {
+
+            await canal.send({
+              embeds: [
+                embed,
+              ],
+              allowedMentions:
+                {
+                  parse: [],
+                },
+            });
+          }
+        }
+      }
+
+      // =========================
+      // HIERARQUIA 2
+      // =========================
+      if (
+        process.env
+          .HIERARQUIA2_CHANNEL
+      ) {
+
+        const canal2 =
+          await client.channels.fetch(
+            process.env
+              .HIERARQUIA2_CHANNEL
           );
 
-        if (mensagemExistente) {
-
-          await mensagemExistente.edit({
-            embeds: [embed],
-            allowedMentions: {
-              parse: [],
-            },
+        const mensagens2 =
+          await canal2.messages.fetch({
+            limit: 30,
           });
 
-        } else {
+        for (const grupo of gruposHierarquia2) {
 
-          await canal.send({
-            embeds: [embed],
-            allowedMentions: {
-              parse: [],
-            },
-          });
+          const embed =
+            montarEmbedHierarquia(
+              newMember.guild,
+              grupo
+            );
+
+          const msg2 =
+            mensagens2.find(
+              (m) =>
+                m.author.id ===
+                  client.user.id &&
+                m.embeds[0]
+                  ?.title ===
+                  grupo.titulo
+            );
+
+          if (msg2) {
+
+            await msg2.edit({
+              embeds: [
+                embed,
+              ],
+              allowedMentions:
+                {
+                  parse: [],
+                },
+            });
+
+          } else {
+
+            await canal2.send({
+              embeds: [
+                embed,
+              ],
+              allowedMentions:
+                {
+                  parse: [],
+                },
+            });
+          }
         }
       }
 
