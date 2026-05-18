@@ -456,7 +456,7 @@ const gruposHierarquia = [
     titulo: "💠 Oficiais Subalternos & Graduados 💠",
     cargos: [
       "🇧🇷┊1º Tenente ★ ★",
-      🇧🇷┊2º Tenente ★",
+      "🇧🇷┊2º Tenente ★",
       "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
       "🇧🇷┊Sub-Tenente ★",
       "🇧🇷┊1º Sargento     .",
