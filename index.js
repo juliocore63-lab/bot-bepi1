@@ -1546,152 +1546,79 @@ client.on("interactionCreate", async (interaction) => {
 // =====================================
 // AUTO UPDATE HIERARQUIA
 // =====================================
-client.on(
-  "guildMemberUpdate",
-  async (
-    oldMember,
-    newMember
-  ) => {
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
+  try {
+    const cargosMonitorados = [
+      ...gruposHierarquia.flatMap((grupo) => grupo.cargos.map((cargo) => cargo.id)),
+      ...gruposHierarquia2.flatMap((grupo) => grupo.cargos.map((cargo) => cargo.id)),
+    ];
 
-    try {
+    const mudouCargo = cargosMonitorados.some((cargoId) => {
+      const tinhaAntes = oldMember.roles.cache.has(cargoId);
+      const temAgora = newMember.roles.cache.has(cargoId);
+      return tinhaAntes !== temAgora;
+    });
 
-      await newMember.guild.members.fetch();
+    if (!mudouCargo) return;
 
-      // =========================
-      // HIERARQUIA 1
-      // =========================
-      if (
-        process.env
-          .HIERARQUIA_CHANNEL
-      ) {
+    await newMember.guild.members.fetch();
 
-        const canal =
-          await client.channels.fetch(
-            process.env
-              .HIERARQUIA_CHANNEL
-          );
+    if (process.env.HIERARQUIA_CHANNEL) {
+      const canal = await client.channels.fetch(process.env.HIERARQUIA_CHANNEL);
+      const mensagens = await canal.messages.fetch({ limit: 30 });
 
-        const mensagens =
-          await canal.messages.fetch({
-            limit: 30,
+      for (const grupo of gruposHierarquia) {
+        const embed = montarEmbedHierarquia(newMember.guild, grupo);
+
+        const msg = mensagens.find(
+          (m) =>
+            m.author.id === client.user.id &&
+            m.embeds[0]?.title === grupo.titulo
+        );
+
+        if (msg) {
+          await msg.edit({
+            embeds: [embed],
+            allowedMentions: { parse: [] },
           });
-
-        for (const grupo of gruposHierarquia) {
-
-          const embed =
-            montarEmbedHierarquia(
-              newMember.guild,
-              grupo
-            );
-
-          const msg =
-            mensagens.find(
-              (m) =>
-                m.author.id ===
-                  client.user.id &&
-                m.embeds[0]
-                  ?.title ===
-                  grupo.titulo
-            );
-
-          if (msg) {
-
-            await msg.edit({
-              embeds: [
-                embed,
-              ],
-              allowedMentions:
-                {
-                  parse: [],
-                },
-            });
-
-          } else {
-
-            await canal.send({
-              embeds: [
-                embed,
-              ],
-              allowedMentions:
-                {
-                  parse: [],
-                },
-            });
-          }
+        } else {
+          await canal.send({
+            embeds: [embed],
+            allowedMentions: { parse: [] },
+          });
         }
       }
-
-      // =========================
-      // HIERARQUIA 2
-      // =========================
-      if (
-        process.env
-          .HIERARQUIA2_CHANNEL
-      ) {
-
-        const canal2 =
-          await client.channels.fetch(
-            process.env
-              .HIERARQUIA2_CHANNEL
-          );
-
-        const mensagens2 =
-          await canal2.messages.fetch({
-            limit: 30,
-          });
-
-        for (const grupo of gruposHierarquia2) {
-
-          const embed =
-            montarEmbedHierarquia(
-              newMember.guild,
-              grupo
-            );
-
-          const msg2 =
-            mensagens2.find(
-              (m) =>
-                m.author.id ===
-                  client.user.id &&
-                m.embeds[0]
-                  ?.title ===
-                  grupo.titulo
-            );
-
-          if (msg2) {
-
-            await msg2.edit({
-              embeds: [
-                embed,
-              ],
-              allowedMentions:
-                {
-                  parse: [],
-                },
-            });
-
-          } else {
-
-            await canal2.send({
-              embeds: [
-                embed,
-              ],
-              allowedMentions:
-                {
-                  parse: [],
-                },
-            });
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error(
-        "Erro ao atualizar hierarquia:",
-        error
-      );
     }
+
+    if (process.env.HIERARQUIA2_CHANNEL) {
+      const canal2 = await client.channels.fetch(process.env.HIERARQUIA2_CHANNEL);
+      const mensagens2 = await canal2.messages.fetch({ limit: 30 });
+
+      for (const grupo of gruposHierarquia2) {
+        const embed = montarEmbedHierarquia(newMember.guild, grupo);
+
+        const msg2 = mensagens2.find(
+          (m) =>
+            m.author.id === client.user.id &&
+            m.embeds[0]?.title === grupo.titulo
+        );
+
+        if (msg2) {
+          await msg2.edit({
+            embeds: [embed],
+            allowedMentions: { parse: [] },
+          });
+        } else {
+          await canal2.send({
+            embeds: [embed],
+            allowedMentions: { parse: [] },
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar hierarquia:", error);
   }
-);
+});
 
 client.login(process.env.TOKEN);
