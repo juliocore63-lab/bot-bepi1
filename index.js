@@ -25,7 +25,11 @@ const client = new Client({
 const DB_FILE = path.join(__dirname, "db.json");
 
 function loadDb() {
-  const initial = { viaturas: {}, membros: {}, historico: [] };
+  const initial = {
+    viaturas: {},
+    membros: {},
+    historico: [],
+  };
 
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
@@ -34,9 +38,11 @@ function loadDb() {
 
   try {
     const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+
     if (!data.viaturas) data.viaturas = {};
     if (!data.membros) data.membros = {};
     if (!data.historico) data.historico = [];
+
     return data;
   } catch (error) {
     console.error("Erro ao ler db.json:", error);
@@ -150,6 +156,7 @@ function ensureViatura(nome) {
   }
 
   const v = db.viaturas[nomeFormatado];
+
   if (!v.entrada) v.entrada = {};
   if (!v.tempoIndividual) v.tempoIndividual = {};
   if (!v.historicoEntradas) v.historicoEntradas = [];
@@ -249,6 +256,7 @@ function registrarParaTodaViatura(membros, tipo, valor) {
 function registrarEntrada(v, userId) {
   if (!v.entrada[userId]) {
     v.entrada[userId] = Date.now();
+
     v.historicoEntradas.push({
       userId,
       data: Date.now(),
@@ -288,6 +296,7 @@ function registrarSaida(v, userId) {
   });
 
   delete v.entrada[userId];
+
   return tempoMin;
 }
 
@@ -314,12 +323,17 @@ function formatHistoricoSaidas(v) {
   if (!v.historicoSaidas?.length) return "Ninguém saiu antes do encerramento.";
 
   return v.historicoSaidas
-    .map((item, index) => `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`)
+    .map(
+      (item, index) =>
+        `S${index + 1}: <@${item.userId}> — ${item.tempo.toFixed(1)} min`
+    )
     .join("\n");
 }
 
 function buildRankingPages(stats, titulo) {
-  const ranking = Object.entries(stats).sort((a, b) => b[1].pontos - a[1].pontos);
+  const ranking = Object.entries(stats).sort(
+    (a, b) => b[1].pontos - a[1].pontos
+  );
 
   if (!ranking.length) {
     return [
@@ -344,6 +358,7 @@ function buildRankingPages(stats, titulo) {
         chunk
           .map(([userId, dados], index) => {
             const pos = i + index + 1;
+
             return [
               `**${pos}.** <@${userId}>`,
               `⏱️ ${dados.tempo.toFixed(1)} min`,
@@ -356,7 +371,9 @@ function buildRankingPages(stats, titulo) {
           .join("\n")
       )
       .setFooter({
-        text: `Página ${Math.floor(i / pageSize) + 1} de ${Math.ceil(ranking.length / pageSize)}`,
+        text: `Página ${Math.floor(i / pageSize) + 1} de ${Math.ceil(
+          ranking.length / pageSize
+        )}`,
       })
       .setTimestamp();
 
@@ -421,9 +438,62 @@ function formatarMembrosCargo(cargo) {
     return "Nenhum membro possui esse cargo atualmente.";
   }
 
-  return cargo.members
-    .map((membro) => `🟢 <@${membro.id}>`)
-    .join("\n");
+  return cargo.members.map((membro) => `🟢 <@${membro.id}>`).join("\n");
+}
+
+const gruposHierarquia = [
+  {
+    titulo: "⭐ Alto Comando & Oficiais ⭐",
+    cargos: [
+      "BR ¦ Aposentado",
+      "BR ¦ Coronel⭐⭐⭐",
+      "BR ¦ Tenente Coronel ✪ ✪ ★",
+      "BR ¦ Major ✪ ★ ★",
+      "BR ¦ Capitão ★ ★ ★",
+    ],
+  },
+  {
+    titulo: "💠 Oficiais Subalternos & Graduados 💠",
+    cargos: [
+      "BR ¦ 1º Tenente ★★",
+      "BR ¦ 2º Tenente ★",
+      "BR ¦ Aspirante a Oficial ✪ ✪ ✪",
+      "BR ¦ Sub-Tenente ★",
+      "BR ¦ 1º Sargento .",
+      "BR ¦ 2º Sargento .",
+      "BR ¦ 3º Sargento .",
+    ],
+  },
+  {
+    titulo: "---Praças---",
+    cargos:	[
+	"BR ¦ Cabo ︽.",
+	"BR ¦ Soldado ︿.",
+	"BR ¦ Recruta ︿."],
+  },
+];
+
+function montarEmbedHierarquia(guild, grupo) {
+  let descricao = "";
+
+  for (const cargoNome of grupo.cargos) {
+    const cargo = guild.roles.cache.find(
+      (r) => r.name.trim() === cargoNome.trim()
+    );
+
+    if (!cargo) continue;
+
+    descricao += `\n**☠️ @${cargo.name}**\n`;
+    descricao += `${cargo.members.size} membros\n\n`;
+    descricao += formatarMembrosCargo(cargo);
+    descricao += "\n\n";
+  }
+
+  return new EmbedBuilder()
+    .setTitle(grupo.titulo)
+    .setColor("Purple")
+    .setDescription(descricao || "Nenhum cargo encontrado.")
+    .setTimestamp();
 }
 
 const commands = [
@@ -470,7 +540,10 @@ client.once("ready", async () => {
 
     if (process.env.GUILD_ID) {
       await rest.put(
-        Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+        Routes.applicationGuildCommands(
+          process.env.CLIENT_ID,
+          process.env.GUILD_ID
+        ),
         { body: commands }
       );
     } else {
@@ -487,12 +560,17 @@ client.once("ready", async () => {
 
 client.on("interactionCreate", async (interaction) => {
   try {
+
     if (interaction.isChatInputCommand()) {
+
       if (interaction.commandName === "viatura") {
+
         await interaction.deferReply();
 
         const nome = interaction.options.getString("nome");
+
         ensureViatura(nome);
+
         saveDb();
 
         return await interaction.editReply({
@@ -502,47 +580,86 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "ranking") {
+
         const { titulo, stats } = getRankingData("geral");
+
         const pages = buildRankingPages(stats, titulo);
 
         return await interaction.reply({
           embeds: [pages[0]],
-          components: buildRankingButtons("geral", 0, pages.length),
+          components: buildRankingButtons(
+            "geral",
+            0,
+            pages.length
+          ),
         });
       }
 
       if (interaction.commandName === "rankingsemanal") {
+
         const { titulo, stats } = getRankingData("semanal");
+
         const pages = buildRankingPages(stats, titulo);
 
         return await interaction.reply({
           embeds: [pages[0]],
-          components: buildRankingButtons("semanal", 0, pages.length),
+          components: buildRankingButtons(
+            "semanal",
+            0,
+            pages.length
+          ),
         });
       }
 
       if (interaction.commandName === "rankingmensal") {
+
         const { titulo, stats } = getRankingData("mensal");
+
         const pages = buildRankingPages(stats, titulo);
 
         return await interaction.reply({
           embeds: [pages[0]],
-          components: buildRankingButtons("mensal", 0, pages.length),
+          components: buildRankingButtons(
+            "mensal",
+            0,
+            pages.length
+          ),
         });
       }
 
       if (interaction.commandName === "meurank") {
+
         const m = ensureMember(interaction.user.id);
 
         const embed = new EmbedBuilder()
           .setTitle("📋 Seu Desempenho Geral")
           .setColor("Blue")
           .addFields(
-            { name: "⏱️ Tempo", value: `${m.tempo.toFixed(1)} min`, inline: true },
-            { name: "🚔 Prisões", value: String(m.prisoes), inline: true },
-            { name: "📦 Ocorrências", value: String(m.ocorrencias), inline: true },
-            { name: "💰 Dinheiro", value: `R$${m.dinheiro}`, inline: true },
-            { name: "🏆 Pontos", value: String(m.pontos), inline: true }
+            {
+              name: "⏱️ Tempo",
+              value: `${m.tempo.toFixed(1)} min`,
+              inline: true,
+            },
+            {
+              name: "🚔 Prisões",
+              value: String(m.prisoes),
+              inline: true,
+            },
+            {
+              name: "📦 Ocorrências",
+              value: String(m.ocorrencias),
+              inline: true,
+            },
+            {
+              name: "💰 Dinheiro",
+              value: `R$${m.dinheiro}`,
+              inline: true,
+            },
+            {
+              name: "🏆 Pontos",
+              value: String(m.pontos),
+              inline: true,
+            }
           )
           .setTimestamp();
 
@@ -553,22 +670,42 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.commandName === "atividade") {
+
         const membros = Object.entries(db.membros)
-          .sort((a, b) => (b[1].lastPatrolAt || 0) - (a[1].lastPatrolAt || 0))
+          .sort(
+            (a, b) =>
+              (b[1].lastPatrolAt || 0) -
+              (a[1].lastPatrolAt || 0)
+          )
           .slice(0, 20);
 
-        const descricao = membros.map(([id, dados]) => {
-          if (!dados.lastPatrolAt) return `⚫ <@${id}> — Nunca participou`;
+        const descricao =
+          membros
+            .map(([id, dados]) => {
 
-          const minutos = Math.floor((Date.now() - dados.lastPatrolAt) / 60000);
-          if (minutos < 60) return `🟢 <@${id}> — há ${minutos} min`;
+              if (!dados.lastPatrolAt) {
+                return `⚫ <@${id}> — Nunca participou`;
+              }
 
-          const horas = Math.floor(minutos / 60);
-          if (horas < 24) return `🟡 <@${id}> — há ${horas}h`;
+              const minutos = Math.floor(
+                (Date.now() - dados.lastPatrolAt) / 60000
+              );
 
-          const dias = Math.floor(horas / 24);
-          return `🔴 <@${id}> — há ${dias} dias`;
-        }).join("\n") || "Sem dados de atividade.";
+              if (minutos < 60) {
+                return `🟢 <@${id}> — há ${minutos} min`;
+              }
+
+              const horas = Math.floor(minutos / 60);
+
+              if (horas < 24) {
+                return `🟡 <@${id}> — há ${horas}h`;
+              }
+
+              const dias = Math.floor(horas / 24);
+
+              return `🔴 <@${id}> — há ${dias} dias`;
+            })
+            .join("\n") || "Sem dados.";
 
         const embed = new EmbedBuilder()
           .setTitle("📋 Atividade Operacional")
@@ -576,25 +713,42 @@ client.on("interactionCreate", async (interaction) => {
           .setDescription(descricao)
           .setTimestamp();
 
-        return await interaction.reply({ embeds: [embed] });
+        return await interaction.reply({
+          embeds: [embed],
+        });
       }
 
       if (interaction.commandName === "tempo") {
+
         const META = 300;
 
         const membros = Object.entries(db.membros)
-          .sort((a, b) => (b[1].weeklyTime || 0) - (a[1].weeklyTime || 0))
+          .sort(
+            (a, b) =>
+              (b[1].weeklyTime || 0) -
+              (a[1].weeklyTime || 0)
+          )
           .slice(0, 20);
 
-        const descricao = membros.map(([id, dados]) => {
-          const tempo = dados.weeklyTime || 0;
+        const descricao =
+          membros
+            .map(([id, dados]) => {
 
-          let status = "🔴 Abaixo da meta";
-          if (tempo >= META) status = "🟢 Meta concluída";
-          else if (tempo >= META * 0.7) status = "🟡 Próximo da meta";
+              const tempo = dados.weeklyTime || 0;
 
-          return `<@${id}> | ⏱️ ${formatMinutes(tempo)} | ${status}`;
-        }).join("\n") || "Sem dados de tempo.";
+              let status = "🔴 Abaixo da meta";
+
+              if (tempo >= META) {
+                status = "🟢 Meta concluída";
+              } else if (tempo >= META * 0.7) {
+                status = "🟡 Próximo da meta";
+              }
+
+              return `<@${id}> | ⏱️ ${formatMinutes(
+                tempo
+              )} | ${status}`;
+            })
+            .join("\n") || "Sem dados.";
 
         const embed = new EmbedBuilder()
           .setTitle("📊 Controle Semanal")
@@ -606,86 +760,22 @@ client.on("interactionCreate", async (interaction) => {
           })
           .setTimestamp();
 
-        return await interaction.reply({ embeds: [embed] });
-      }
-
-      if (interaction.commandName === "hierarquia") {
-        const cargos = [
-          "🇧🇷┊Coronel⭐⭐⭐",
-          "🇧🇷┊Tenente Coronel ✪   ✪  ★",
-          "🇧🇷┊Major ✪  ★  ★",
-          "🇧🇷┊Capitão ★  ★  ★",
-          "🇧🇷┊1º Tenente ★ ★",
-          "🇧🇷┊2º Tenente ★",
-          "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
-          "🇧🇷┊Sub-Tenente ★",
-          "🇧🇷┊1º Sargento",
-          "🇧🇷┊2° Sargento",
-          "🇧🇷┊3° Sargento",
-          "🇧🇷┊Cabo",
-          "🇧🇷┊Soldado",
-          "🇧🇷┊Recruta",
-          "🇧🇷┊Aposentado",
-        ];
-
-        let descricao = "";
-
-        for (const cargoNome of cargos) {
-          const cargo = interaction.guild.roles.cache.find(
-            (r) => r.name.trim() === cargoNome.trim()
-          );
-
-          if (!cargo) continue;
-
-          descricao += `\n**☠️ @${cargo.name}**\n`;
-          descricao += `${cargo.members.size} membros\n\n`;
-          descricao += formatarMembrosCargo(cargo);
-          descricao += "\n\n";
-        }
-
-        const embed = new EmbedBuilder()
-          .setTitle("👑 Hierarquia BEPI")
-          .setColor("Purple")
-          .setDescription(descricao || "Nenhum cargo encontrado.")
-          .setTimestamp();
-
         return await interaction.reply({
           embeds: [embed],
-          allowedMentions: { parse: [] },
         });
       }
 
-      if (interaction.commandName === "hierarquia2") {
-        const cargos = [
-          "💀・COMANDO COTAR ・💀",
-          "💀・SUB-COMANDO COTAR ・💀",
-          "💀・Instrutor Cotar ・💀",
-          "💀・MEMBRO COTAR・💀",
-        ];
+      if (
+        interaction.commandName === "hierarquia" ||
+        interaction.commandName === "hierarquia2"
+      ) {
 
-        let descricao = "";
-
-        for (const cargoNome of cargos) {
-          const cargo = interaction.guild.roles.cache.find(
-            (r) => r.name.trim() === cargoNome.trim()
-          );
-
-          if (!cargo) continue;
-
-          descricao += `\n**☠️ @${cargo.name}**\n`;
-          descricao += `${cargo.members.size} membros\n\n`;
-          descricao += formatarMembrosCargo(cargo);
-          descricao += "\n\n";
-        }
-
-        const embed = new EmbedBuilder()
-          .setTitle("👑 Hierarquia COTAR")
-          .setColor("Yellow")
-          .setDescription(descricao || "Nenhum cargo encontrado.")
-          .setTimestamp();
+        const embeds = gruposHierarquia.map((grupo) =>
+          montarEmbedHierarquia(interaction.guild, grupo)
+        );
 
         return await interaction.reply({
-          embeds: [embed],
+          embeds,
           allowedMentions: { parse: [] },
         });
       }
@@ -694,47 +784,71 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     if (interaction.isButton()) {
+
       if (
         interaction.customId.startsWith("rank_prev:") ||
         interaction.customId.startsWith("rank_next:")
       ) {
-        const [acao, tipo, pageStr] = interaction.customId.split(":");
+
+        const [acao, tipo, pageStr] =
+          interaction.customId.split(":");
+
         let page = parseInt(pageStr, 10);
 
         if (acao === "rank_prev") page--;
         if (acao === "rank_next") page++;
 
         const { titulo, stats } = getRankingData(tipo);
+
         const pages = buildRankingPages(stats, titulo);
 
         if (page < 0) page = 0;
-        if (page >= pages.length) page = pages.length - 1;
+        if (page >= pages.length)
+          page = pages.length - 1;
 
         return await interaction.update({
           embeds: [pages[page]],
-          components: buildRankingButtons(tipo, page, pages.length),
+          components: buildRankingButtons(
+            tipo,
+            page,
+            pages.length
+          ),
         });
       }
 
-      if (interaction.customId.startsWith("rank_info:")) {
+      if (
+        interaction.customId.startsWith("rank_info:")
+      ) {
         return await interaction.deferUpdate();
       }
 
-      const [tipo, nomeRaw] = interaction.customId.split(":");
+      const [tipo, nomeRaw] =
+        interaction.customId.split(":");
+
       const nome = nomeRaw.toUpperCase().trim();
+
       const v = ensureViatura(nome);
+
       const id = interaction.user.id;
 
       if (tipo === "entrar") {
-        if (!v.membros.includes(id) && v.membros.length < 4) {
+
+        if (
+          !v.membros.includes(id) &&
+          v.membros.length < 4
+        ) {
+
           v.membros.push(id);
+
           registrarEntrada(v, id);
 
           const membro = ensureMember(id);
+
           membro.lastPatrolAt = Date.now();
           membro.patrolStart = Date.now();
 
           if (!v.inicio) v.inicio = Date.now();
+
           if (!v.lider) v.lider = id;
 
           saveDb();
@@ -747,14 +861,17 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "lider") {
+
         if (!v.membros.includes(id)) {
           return await interaction.reply({
-            content: "❌ Você precisa estar na viatura para virar líder.",
+            content:
+              "❌ Você precisa estar na viatura.",
             ephemeral: true,
           });
         }
 
         v.lider = id;
+
         saveDb();
 
         return await interaction.update({
@@ -764,17 +881,24 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "sair") {
+
         if (!v.membros.includes(id)) {
           return await interaction.reply({
-            content: "❌ Você não está nessa viatura.",
+            content:
+              "❌ Você não está nessa viatura.",
             ephemeral: true,
           });
         }
 
         registrarSaida(v, id);
-        v.membros = v.membros.filter((u) => u !== id);
 
-        if (v.lider === id) v.lider = v.membros[0] || null;
+        v.membros = v.membros.filter(
+          (u) => u !== id
+        );
+
+        if (v.lider === id) {
+          v.lider = v.membros[0] || null;
+        }
 
         if (v.membros.length === 0) {
           v.inicio = null;
@@ -793,15 +917,23 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "prisao") {
+
         if (!v.membros.includes(id)) {
           return await interaction.reply({
-            content: "❌ Você precisa estar na viatura para registrar prisão.",
+            content:
+              "❌ Você precisa estar na viatura.",
             ephemeral: true,
           });
         }
 
         v.prisoes += 1;
-        registrarParaTodaViatura(v.membros, "prisao", 1);
+
+        registrarParaTodaViatura(
+          v.membros,
+          "prisao",
+          1
+        );
+
         saveDb();
 
         return await interaction.update({
@@ -811,15 +943,23 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "ocorrencia") {
+
         if (!v.membros.includes(id)) {
           return await interaction.reply({
-            content: "❌ Você precisa estar na viatura para registrar ocorrência.",
+            content:
+              "❌ Você precisa estar na viatura.",
             ephemeral: true,
           });
         }
 
         v.ocorrencias += 1;
-        registrarParaTodaViatura(v.membros, "ocorrencia", 1);
+
+        registrarParaTodaViatura(
+          v.membros,
+          "ocorrencia",
+          1
+        );
+
         saveDb();
 
         return await interaction.update({
@@ -829,9 +969,11 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (tipo === "dinheiro") {
+
         if (!v.membros.includes(id)) {
           return await interaction.reply({
-            content: "❌ Você precisa estar na viatura para registrar apreensão.",
+            content:
+              "❌ Você precisa estar na viatura.",
             ephemeral: true,
           });
         }
@@ -847,20 +989,27 @@ client.on("interactionCreate", async (interaction) => {
           .setRequired(true)
           .setPlaceholder("Ex: 5000");
 
-        modal.addComponents(new ActionRowBuilder().addComponents(input));
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(input)
+        );
 
         return await interaction.showModal(modal);
       }
 
       if (tipo === "finalizar") {
+
         if (!v.membros.includes(id)) {
           return await interaction.reply({
-            content: "❌ Você precisa estar na viatura para finalizar.",
+            content:
+              "❌ Você precisa estar na viatura.",
             ephemeral: true,
           });
         }
 
-        const lider = v.lider ? `<@${v.lider}>` : "Nenhum";
+        const lider = v.lider
+          ? `<@${v.lider}>`
+          : "Nenhum";
+
         const equipeFinal = [...v.membros];
 
         for (const membroId of equipeFinal) {
@@ -868,39 +1017,88 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         const tempoTotal = v.inicio
-          ? ((Date.now() - v.inicio) / 60000).toFixed(1)
+          ? (
+              (Date.now() - v.inicio) /
+              60000
+            ).toFixed(1)
           : "0.0";
 
         const embed = new EmbedBuilder()
-          .setTitle(`🚔 RELATÓRIO FINAL - ${nome}`)
+          .setTitle(
+            `🚔 RELATÓRIO FINAL - ${nome}`
+          )
           .setColor("Red")
           .addFields(
-            { name: "⭐ Comandante", value: lider, inline: false },
-            { name: "🚓 Viatura", value: nome.toUpperCase(), inline: true },
-            { name: "⏱️ Tempo", value: `${tempoTotal} min`, inline: true },
-            { name: "💰 Dinheiro", value: `R$${v.dinheiro}`, inline: true },
-            { name: "🚔 Prisões", value: String(v.prisoes), inline: true },
-            { name: "📦 Ocorrências", value: String(v.ocorrencias), inline: true },
+            {
+              name: "⭐ Comandante",
+              value: lider,
+              inline: false,
+            },
+            {
+              name: "🚓 Viatura",
+              value: nome.toUpperCase(),
+              inline: true,
+            },
+            {
+              name: "⏱️ Tempo",
+              value: `${tempoTotal} min`,
+              inline: true,
+            },
+            {
+              name: "💰 Dinheiro",
+              value: `R$${v.dinheiro}`,
+              inline: true,
+            },
+            {
+              name: "🚔 Prisões",
+              value: String(v.prisoes),
+              inline: true,
+            },
+            {
+              name: "📦 Ocorrências",
+              value: String(v.ocorrencias),
+              inline: true,
+            },
             {
               name: "👮 Equipe",
-              value: equipeFinal.map((id) => `<@${id}>`).join("\n") || "Nenhum",
+              value:
+                equipeFinal
+                  .map((id) => `<@${id}>`)
+                  .join("\n") || "Nenhum",
               inline: false,
             },
             {
               name: "⏱️ Tempo Individual",
-              value: formatTempoIndividual(v, equipeFinal),
+              value: formatTempoIndividual(
+                v,
+                equipeFinal
+              ),
               inline: false,
             }
           )
           .setTimestamp();
 
         try {
+
           if (process.env.LOG_CHANNEL) {
-            const canal = await client.channels.fetch(process.env.LOG_CHANNEL);
-            if (canal) await canal.send({ embeds: [embed] });
+
+            const canal =
+              await client.channels.fetch(
+                process.env.LOG_CHANNEL
+              );
+
+            if (canal) {
+              await canal.send({
+                embeds: [embed],
+              });
+            }
           }
+
         } catch (error) {
-          console.error("Erro ao enviar log:", error);
+          console.error(
+            "Erro ao enviar log:",
+            error
+          );
         }
 
         db.viaturas[nome] = {
@@ -929,12 +1127,23 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     if (interaction.isModalSubmit()) {
-      const [, nomeRaw] = interaction.customId.split(":");
+
+      const [, nomeRaw] =
+        interaction.customId.split(":");
+
       const nome = nomeRaw.toUpperCase().trim();
-      const valorTexto = interaction.fields.getTextInputValue("valor");
+
+      const valorTexto =
+        interaction.fields.getTextInputValue(
+          "valor"
+        );
+
       const valor = parseInt(valorTexto, 10);
 
-      if (Number.isNaN(valor) || valor <= 0) {
+      if (
+        Number.isNaN(valor) ||
+        valor <= 0
+      ) {
         return await interaction.reply({
           content: "❌ Digite um valor válido.",
           ephemeral: true,
@@ -942,17 +1151,25 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const v = ensureViatura(nome);
+
       const id = interaction.user.id;
 
       if (!v.membros.includes(id)) {
         return await interaction.reply({
-          content: "❌ Você precisa estar na viatura.",
+          content:
+            "❌ Você precisa estar na viatura.",
           ephemeral: true,
         });
       }
 
       v.dinheiro += valor;
-      registrarParaTodaViatura(v.membros, "dinheiro", valor);
+
+      registrarParaTodaViatura(
+        v.membros,
+        "dinheiro",
+        valor
+      );
+
       saveDb();
 
       return await interaction.reply({
@@ -960,23 +1177,96 @@ client.on("interactionCreate", async (interaction) => {
         ephemeral: true,
       });
     }
+
   } catch (error) {
+
     console.error("Erro geral:");
     console.error(error);
 
     if (!interaction.isRepliable()) return;
 
     try {
-      if (!interaction.deferred && !interaction.replied) {
+
+      if (
+        !interaction.deferred &&
+        !interaction.replied
+      ) {
+
         await interaction.reply({
-          content: "❌ Ocorreu um erro.",
+          content:
+            "❌ Ocorreu um erro.",
           ephemeral: true,
         });
       }
+
     } catch (e) {
       console.error(e);
     }
   }
 });
+
+client.on(
+  "guildMemberUpdate",
+  async (oldMember, newMember) => {
+
+    try {
+
+      if (!process.env.HIERARQUIA_CHANNEL)
+        return;
+
+      const canal =
+        await client.channels.fetch(
+          process.env.HIERARQUIA_CHANNEL
+        );
+
+      const mensagens =
+        await canal.messages.fetch({
+          limit: 20,
+        });
+
+      for (const grupo of gruposHierarquia) {
+
+        const embed =
+          montarEmbedHierarquia(
+            newMember.guild,
+            grupo
+          );
+
+        const mensagemExistente =
+          mensagens.find(
+            (m) =>
+              m.author.id === client.user.id &&
+              m.embeds[0]?.title ===
+                grupo.titulo
+          );
+
+        if (mensagemExistente) {
+
+          await mensagemExistente.edit({
+            embeds: [embed],
+            allowedMentions: {
+              parse: [],
+            },
+          });
+
+        } else {
+
+          await canal.send({
+            embeds: [embed],
+            allowedMentions: {
+              parse: [],
+            },
+          });
+        }
+      }
+
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar hierarquia:",
+        error
+      );
+    }
+  }
+);
 
 client.login(process.env.TOKEN);
