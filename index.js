@@ -445,31 +445,32 @@ const gruposHierarquia = [
   {
     titulo: "⭐ Alto Comando & Oficiais ⭐",
     cargos: [
-      "BR ¦ Aposentado",
-      "BR ¦ Coronel⭐⭐⭐",
-      "BR ¦ Tenente Coronel ✪ ✪ ★",
-      "BR ¦ Major ✪ ★ ★",
-      "BR ¦ Capitão ★ ★ ★",
+      "🇧🇷┊Aposentado",
+      "🇧🇷┊Coronel⭐⭐⭐",
+      "🇧🇷┊Tenente Coronel ✪   ✪  ★",
+      "🇧🇷┊Major ✪  ★  ★",
+      "🇧🇷┊Capitão ★  ★  ★",
     ],
   },
   {
     titulo: "💠 Oficiais Subalternos & Graduados 💠",
     cargos: [
-      "BR ¦ 1º Tenente ★★",
-      "BR ¦ 2º Tenente ★",
-      "BR ¦ Aspirante a Oficial ✪ ✪ ✪",
-      "BR ¦ Sub-Tenente ★",
-      "BR ¦ 1º Sargento .",
-      "BR ¦ 2º Sargento .",
-      "BR ¦ 3º Sargento .",
+      "🇧🇷┊1º Tenente ★ ★",
+      🇧🇷┊2º Tenente ★",
+      "🇧🇷┊Aspirante a Oficial ✪ ✪ ✪",
+      "🇧🇷┊Sub-Tenente ★",
+      "🇧🇷┊1º Sargento     .",
+      "🇧🇷┊2° Sargento       .",
+      "🇧🇷┊3° Sargento         .",
     ],
   },
   {
     titulo: "---Praças---",
     cargos:	[
-	"BR ¦ Cabo ︽.",
-	"BR ¦ Soldado ︿.",
-	"BR ¦ Recruta ︿."],
+	"🇧🇷┊Cabo ︽          .",
+	"🇧🇷┊Soldado ︿           .",
+	"🇧🇷┊Recruta ︿         ."
+	],
   },
 ];
 
