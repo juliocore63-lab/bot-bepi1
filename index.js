@@ -1561,7 +1561,14 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
     if (!mudouCargo) return;
 
-    await newMember.guild.members.fetch();
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+await newMember.guild.members.fetch({
+  user: newMember.id,
+  force: true,
+});
+
+await newMember.guild.members.fetch();
 
     if (process.env.HIERARQUIA_CHANNEL) {
       const canal = await client.channels.fetch(process.env.HIERARQUIA_CHANNEL);
