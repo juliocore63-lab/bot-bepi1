@@ -524,7 +524,7 @@ const gruposHierarquia2 = [
       { nome: "💀・COMANDO COTAR ・💀", id: "1482090447500214463" },
       { nome: "💀・SUB-COMANDO COTAR ・💀", id: "1482092770184269885" },
       { nome: "💀・Instrutor Cotar ・💀", id: "1484975335929024702" },
-      { nome: "💀・MEMBRO COTAR・💀", id: "1482090531835220140" },
+      { nome: "💀・MEMBRO COTAR・💀", id: "1506761175193489568" },
     ],
   },
 ];
