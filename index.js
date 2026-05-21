@@ -529,6 +529,8 @@ const gruposHierarquia2 = [
   },
 ];
 
+// att
+
 const commands = [
   new SlashCommandBuilder()
     .setName("viatura")
