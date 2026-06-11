@@ -9,7 +9,6 @@ const {
 const editalPMCECommand = new SlashCommandBuilder()
   .setName("editalpmce")
   .setDescription("Enviar painel de recrutamento da PMCE")
-  .toJSON();
 
 const editalEmAndamento = new Set();
 
