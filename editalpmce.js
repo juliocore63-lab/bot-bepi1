@@ -150,14 +150,13 @@ async function iniciarFormulario(interaction) {
     for (let i = 0; i < perguntasPMCE.length; i++) {
       const [pergunta, tempo, tempoTexto] = perguntasPMCE[i];
 
-      await interaction.followUp({
+      await interaction.editReply({
         content:
           `🛡️ **EDITAL PMCE**\n\n` +
           `**Pergunta ${i + 1}/10**\n` +
           `${pergunta}\n\n` +
           `⏳ **Tempo para responder:** ${tempoTexto}\n\n` +
           `Digite sua resposta neste canal. Ela será apagada automaticamente.`,
-        ephemeral: true,
       });
 
       const coletor = await interaction.channel.awaitMessages({
@@ -174,7 +173,7 @@ async function iniciarFormulario(interaction) {
       await resposta.delete().catch(() => {});
     }
 
-    await interaction.followUp({
+    await interaction.editReply({
       content:
         "✅ **Inscrição concluída com sucesso!**\n\n" +
         "Sua candidatura foi enviada para análise do Comando da PMCE.",
@@ -199,7 +198,7 @@ async function iniciarFormulario(interaction) {
     console.error("ERRO EDITAL PMCE:", error);
 
     await interaction
-      .followUp({
+      .editReply({
         content:
           "❌ **Inscrição encerrada.**\n\n" +
           "O tempo para resposta expirou ou ocorreu um erro durante o formulário.",
