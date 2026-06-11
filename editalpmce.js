@@ -272,6 +272,8 @@ if (tipo === "aprovar" && process.env.PMCE_CARGO_APROVADO) {
   }
 }
 
+//teste
+
 await interaction.update({
   embeds: [novaEmbed],
   components: [],

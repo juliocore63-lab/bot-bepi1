@@ -620,6 +620,28 @@ client.on("interactionCreate", async (interaction) => {
   try {
 
     if (interaction.isChatInputCommand()) {
+      const guildId = interaction.guild.id;
+      const commandName = interaction.commandName;
+
+      const servidorPMCE = process.env.GUILD_ID_1;
+      const servidorSecundario = process.env.GUILD_ID_2;
+
+      if (guildId === servidorSecundario && commandName !== "editalpmce") {
+        return interaction.reply({
+          content: "❌ Este comando não está disponível neste servidor.",
+          ephemeral: true,
+        });
+      }
+
+      if (guildId === servidorPMCE && commandName === "editalpmce") {
+        return interaction.reply({
+          content: "❌ O edital da PMCE não está disponível neste servidor.",
+          ephemeral: true,
+        });
+      }
+    }
+
+    if (interaction.isChatInputCommand()) {
 
       // =========================
       // /VIATURA
