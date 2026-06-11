@@ -240,22 +240,42 @@ async function registrarAvaliacao(interaction, tipo, userId) {
   const campos = embedAntiga.fields || [];
 
   const novaEmbed = EmbedBuilder.from(embedAntiga)
-    .setColor(cor)
-    .setDescription(
-      [
-        `👤 **Candidato:** <@${userId}>`,
-        `🆔 **Discord ID:** ${userId}`,
-        `📌 **Status:** ${status}`,
-        `👮 **Avaliador:** <@${avaliadorId}>`,
-      ].join("\n")
-    )
-    .setFields(campos)
-    .setTimestamp();
+  .setColor(cor)
+  .setDescription(
+    [
+      `👤 **Candidato:** <@${userId}>`,
+      `🆔 **Discord ID:** ${userId}`,
+      `📌 **Status:** ${status}`,
+      `👮 **Avaliador:** <@${avaliadorId}>`,
+    ].join("\n")
+  )
+  .setFields(campos)
+  .setTimestamp();
 
-  await interaction.update({
-    embeds: [novaEmbed],
-    components: [botoesAvaliacao(userId)],
-  });
+if (tipo === "aprovar" && process.env.PMCE_CARGO_APROVADO) {
+
+  const membro = await interaction.guild.members
+    .fetch(userId)
+    .catch(() => null);
+
+  if (membro) {
+    try {
+      await membro.roles.add(
+        process.env.PMCE_CARGO_APROVADO
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao adicionar cargo aprovado:",
+        error
+      );
+    }
+  }
+}
+
+await interaction.update({
+  embeds: [novaEmbed],
+  components: [],
+});
 
   if (tipo === "aprovar") {
     const canalAprovados = await interaction.guild.channels
