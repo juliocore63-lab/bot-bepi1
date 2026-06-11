@@ -979,6 +979,10 @@ client.on("interactionCreate", async (interaction) => {
     // =====================================
     if (interaction.isButton()) {
 
+    if (interaction.customId.startsWith("pmce_")) {
+      return;
+    }
+
       // =========================
       // PAGINAÇÃO RANK
       // =========================
