@@ -8,7 +8,7 @@ const {
 
 const editalPMCECommand = new SlashCommandBuilder()
   .setName("editalpmce")
-  .setDescription("Enviar painel de recrutamento da PMCE")
+  .setDescription("Enviar painel de recrutamento da PMCE");
 
 const editalEmAndamento = new Set();
 
@@ -22,7 +22,11 @@ const perguntasPMCE = [
   ["Explique com suas palavras o que é Meta Gaming (MG) e por que essa prática é proibida.", 120_000, "2 minutos"],
   ["Explique com suas palavras o que é Power Gaming (PG) e por que essa prática é proibida.", 120_000, "2 minutos"],
   ["Por que você deseja ingressar na PMCE e o que acredita poder agregar à corporação?", 180_000, "3 minutos"],
-  ["Conte a história completa do seu personagem.\n\nInclua: origem, família, infância, motivações, trajetória de vida, motivo para seguir carreira policial e objetivos dentro da corporação.", 300_000, "5 minutos"],
+  [
+    "Conte a história completa do seu personagem.\n\nInclua: origem, família, infância, motivações, trajetória de vida, motivo para seguir carreira policial e objetivos dentro da corporação.",
+    300_000,
+    "5 minutos",
+  ],
 ];
 
 function painelPMCE() {
@@ -68,16 +72,19 @@ function botoesAvaliacao(userId) {
       .setLabel("Aprovar")
       .setEmoji("✅")
       .setStyle(ButtonStyle.Success),
+
     new ButtonBuilder()
       .setCustomId(`pmce_reprovar:${userId}`)
       .setLabel("Reprovar")
       .setEmoji("❌")
       .setStyle(ButtonStyle.Danger),
+
     new ButtonBuilder()
       .setCustomId(`pmce_convocar:${userId}`)
       .setLabel("Convocar")
       .setEmoji("📞")
       .setStyle(ButtonStyle.Primary),
+
     new ButtonBuilder()
       .setCustomId(`pmce_analise:${userId}`)
       .setLabel("Em análise")
@@ -96,7 +103,9 @@ function montarEmbedInscricao(user, respostas, status = "📋 Pendente", avaliad
         `🆔 **Discord ID:** ${user.id}`,
         `📌 **Status:** ${status}`,
         avaliador ? `👮 **Avaliador:** <@${avaliador}>` : null,
-      ].filter(Boolean).join("\n")
+      ]
+        .filter(Boolean)
+        .join("\n")
     )
     .setFooter({ text: "PMCE • Sistema de Recrutamento" })
     .setTimestamp();
@@ -141,13 +150,14 @@ async function iniciarFormulario(interaction) {
     for (let i = 0; i < perguntasPMCE.length; i++) {
       const [pergunta, tempo, tempoTexto] = perguntasPMCE[i];
 
-      await interaction.editReply({
+      await interaction.followUp({
         content:
           `🛡️ **EDITAL PMCE**\n\n` +
           `**Pergunta ${i + 1}/10**\n` +
           `${pergunta}\n\n` +
           `⏳ **Tempo para responder:** ${tempoTexto}\n\n` +
           `Digite sua resposta neste canal. Ela será apagada automaticamente.`,
+        ephemeral: true,
       });
 
       const coletor = await interaction.channel.awaitMessages({
@@ -164,18 +174,18 @@ async function iniciarFormulario(interaction) {
       await resposta.delete().catch(() => {});
     }
 
-    await interaction.editReply({
+    await interaction.followUp({
       content:
         "✅ **Inscrição concluída com sucesso!**\n\n" +
         "Sua candidatura foi enviada para análise do Comando da PMCE.",
+      ephemeral: true,
     });
 
-    const canalPendentes = await interaction.guild.channels.fetch(
-      process.env.PMCE_REGISTROS_PENDENTES
-    );
+    const canalPendentes = await interaction.guild.channels
+      .fetch(process.env.PMCE_REGISTROS_PENDENTES)
+      .catch(() => null);
 
     if (!canalPendentes) {
-      editalEmAndamento.delete(userId);
       return;
     }
 
@@ -185,16 +195,20 @@ async function iniciarFormulario(interaction) {
       embeds: [embed],
       components: [botoesAvaliacao(userId)],
     });
-
   } catch (error) {
-    await interaction.editReply({
-      content:
-        "❌ **Inscrição encerrada.**\n\n" +
-        "O tempo para resposta expirou ou ocorreu um erro durante o formulário.",
-    }).catch(() => {});
-  }
+    console.error("ERRO EDITAL PMCE:", error);
 
-  editalEmAndamento.delete(userId);
+    await interaction
+      .followUp({
+        content:
+          "❌ **Inscrição encerrada.**\n\n" +
+          "O tempo para resposta expirou ou ocorreu um erro durante o formulário.",
+        ephemeral: true,
+      })
+      .catch(() => {});
+  } finally {
+    editalEmAndamento.delete(userId);
+  }
 }
 
 async function registrarAvaliacao(interaction, tipo, userId) {
@@ -245,9 +259,9 @@ async function registrarAvaliacao(interaction, tipo, userId) {
   });
 
   if (tipo === "aprovar") {
-    const canalAprovados = await interaction.guild.channels.fetch(
-      process.env.PMCE_REGISTROS_APROVADOS
-    ).catch(() => null);
+    const canalAprovados = await interaction.guild.channels
+      .fetch(process.env.PMCE_REGISTROS_APROVADOS)
+      .catch(() => null);
 
     if (canalAprovados) {
       const embedAprovado = EmbedBuilder.from(novaEmbed)
@@ -309,10 +323,12 @@ function registrarEditalPMCE(client) {
       console.error("Erro no sistema de edital PMCE:", error);
 
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: "❌ Ocorreu um erro no sistema de edital.",
-          ephemeral: true,
-        }).catch(() => {});
+        await interaction
+          .reply({
+            content: "❌ Ocorreu um erro no sistema de edital.",
+            ephemeral: true,
+          })
+          .catch(() => {});
       }
     }
   });
