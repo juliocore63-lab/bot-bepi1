@@ -15,12 +15,21 @@ const {
   TextInputStyle,
 } = require("discord.js");
 
+const { registrarEditalPMCE, editalPMCECommand } = require("./editalpmce");
+
 const fs = require("fs");
 const path = require("path");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
+
+registrarEditalPMCE(client);
 
 const DB_FILE = path.join(__dirname, "db.json");
 
@@ -532,6 +541,8 @@ const gruposHierarquia2 = [
 // att
 
 const commands = [
+  editalPMCECommand,
+  
   new SlashCommandBuilder()
     .setName("viatura")
     .setDescription("Abrir painel da viatura")
