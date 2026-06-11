@@ -584,19 +584,31 @@ client.once("ready", async () => {
   try {
     console.log(`BOT ONLINE: ${client.user.tag}`);
 
-    if (process.env.GUILD_ID) {
-      await rest.put(
-        Routes.applicationGuildCommands(
-          process.env.CLIENT_ID,
-          process.env.GUILD_ID
-        ),
-        { body: commands }
-      );
-    } else {
-      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
-        body: commands,
-      });
-    }
+    const guilds = [
+  process.env.GUILD_ID_1,
+  process.env.GUILD_ID_2,
+].filter(Boolean);
+
+if (guilds.length) {
+  for (const guildId of guilds) {
+    await rest.put(
+      Routes.applicationGuildCommands(
+        process.env.CLIENT_ID,
+        guildId
+      ),
+      { body: commands }
+    );
+
+    console.log(`✅ Comandos registrados no servidor ${guildId}`);
+  }
+} else {
+  await rest.put(
+    Routes.applicationCommands(process.env.CLIENT_ID),
+    { body: commands }
+  );
+
+  console.log("✅ Comandos globais registrados");
+}
 
     console.log("COMANDOS REGISTRADOS");
   } catch (error) {
