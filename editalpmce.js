@@ -111,11 +111,19 @@ function montarEmbedInscricao(user, respostas, status = "📋 Pendente", avaliad
     .setTimestamp();
 
   respostas.forEach((resposta, index) => {
-    embed.addFields({
-      name: `Pergunta ${index + 1}`,
-      value: resposta.length > 1024 ? resposta.slice(0, 1021) + "..." : resposta,
-    });
+  const pergunta = perguntasPMCE[index][0];
+
+  const texto = [
+    `**Pergunta:** ${pergunta}`,
+    "",
+    `**Resposta:** ${resposta}`,
+  ].join("\n");
+
+  embed.addFields({
+    name: `📌 Pergunta ${index + 1}`,
+    value: texto.length > 1024 ? texto.slice(0, 1021) + "..." : texto,
   });
+});
 
   return embed;
 }
