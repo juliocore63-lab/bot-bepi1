@@ -16,6 +16,7 @@ const {
 } = require("discord.js");
 
 const { registrarEditalPMCE, editalPMCECommand } = require("./editalpmce");
+const { registrarCursoPMCE, cursoPMCECommand } = require("./cursoPMCE");
 
 const fs = require("fs");
 const path = require("path");
@@ -30,6 +31,7 @@ const client = new Client({
 });
 
 registrarEditalPMCE(client);
+registrarCursoPMCE(client);
 
 const DB_FILE = path.join(__dirname, "db.json");
 
@@ -542,6 +544,7 @@ const gruposHierarquia2 = [
 
 const commands = [
   editalPMCECommand,
+  cursoPMCECommand,
   
   new SlashCommandBuilder()
     .setName("viatura")
