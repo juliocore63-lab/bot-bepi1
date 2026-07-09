@@ -13,6 +13,8 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } = require("discord.js");
 
 const { registrarEditalPMCE, editalPMCECommand } = require("./editalpmce");
@@ -640,9 +642,68 @@ if (guilds.length) {
   }
 });
 
+function buildConfirmarParticipantes(nome, v) {
+  const participantes =
+    v.confirmacao?.participantes || [...v.membros];
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(`confirm_participantes:${nome}`)
+    .setPlaceholder("Selecione quem realmente participou")
+    .setMinValues(1)
+    .setMaxValues(v.membros.length)
+    .addOptions(
+      v.membros.map((membroId, index) =>
+        new StringSelectMenuOptionBuilder()
+          .setLabel(`P${index + 1}`)
+          .setDescription(`Membro ${index + 1} da viatura`)
+          .setValue(membroId)
+          .setDefault(participantes.includes(membroId))
+      )
+    );
+
+  const rowSelect = new ActionRowBuilder().addComponents(select);
+
+  const rowButton = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`confirm_finalizar:${nome}`)
+      .setLabel("Confirmar fechamento")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  return [rowSelect, rowButton];
+}
+
 client.on("interactionCreate", async (interaction) => {
   try {
 
+    if (interaction.isStringSelectMenu()) {
+  if (interaction.customId.startsWith("confirm_participantes:")) {
+    const [, nomeRaw] = interaction.customId.split(":");
+    const nome = nomeRaw.toUpperCase().trim();
+    const v = ensureViatura(nome);
+
+    if (v.lider !== interaction.user.id) {
+      return await interaction.reply({
+        content: "❌ Apenas o líder da viatura pode alterar os participantes.",
+        ephemeral: true,
+      });
+    }
+
+    v.confirmacao.participantes = interaction.values;
+
+    saveDb();
+
+    return await interaction.update({
+      content:
+        `🚓 **Confirmar participantes da viatura ${nome}**\n\n` +
+        `Participantes confirmados: ${interaction.values
+          .map((id) => `<@${id}>`)
+          .join(", ")}`,
+      components: buildConfirmarParticipantes(nome, v),
+    });
+  }
+}
+    
     if (interaction.isChatInputCommand()) {
       const guildId = interaction.guild.id;
       const commandName = interaction.commandName;
@@ -1090,6 +1151,32 @@ if (interaction.commandName === "removertempo") {
     // =====================================
     if (interaction.isButton()) {
 
+      if (interaction.customId.startsWith("confirm_finalizar:")) {
+
+  const [, nomeRaw] = interaction.customId.split(":");
+  const nome = nomeRaw.toUpperCase().trim();
+
+  const v = ensureViatura(nome);
+
+  if (v.lider !== interaction.user.id) {
+    return await interaction.reply({
+      content: "❌ Apenas o líder da viatura pode confirmar o fechamento.",
+      ephemeral: true,
+    });
+  }
+
+  const participantes =
+    v.confirmacao?.participantes || [...v.membros];
+
+  return await interaction.reply({
+    content:
+      "✅ Participantes confirmados:\n\n" +
+      participantes.map((id) => `<@${id}>`).join("\n") +
+      "\n\n⚠️ Agora me avise para fazermos a última etapa da finalização.",
+    ephemeral: true,
+  });
+}
+
     if (interaction.customId.startsWith("pmce_")) {
       return;
     }
@@ -1427,15 +1514,19 @@ if (interaction.commandName === "removertempo") {
         tipo === "finalizar"
       ) {
 
-        if (
-          !v.membros.includes(id)
-        ) {
-          return await interaction.reply({
-            content:
-              "❌ Você precisa estar na viatura.",
-            ephemeral: true,
-          });
-        }
+        if (!v.membros.includes(id)) {
+  return await interaction.reply({
+    content: "❌ Você precisa estar na viatura.",
+    ephemeral: true,
+  });
+}
+
+if (v.lider !== id) {
+  return await interaction.reply({
+    content: "❌ Apenas o líder da viatura pode finalizar a patrulha.",
+    ephemeral: true,
+  });
+}
 
         const lider =
           v.lider
