@@ -574,6 +574,27 @@ const commands = [
     .setName("tempo")
     .setDescription("Ver tempo semanal"),
   new SlashCommandBuilder()
+  .setName("removertempo")
+  .setDescription("Remover tempo de patrulha de um policial")
+  .addUserOption((option) =>
+    option
+      .setName("usuario")
+      .setDescription("Policial que terá o tempo removido")
+      .setRequired(true)
+  )
+  .addIntegerOption((option) =>
+    option
+      .setName("minutos")
+      .setDescription("Quantidade de minutos para remover")
+      .setRequired(true)
+  )
+  .addStringOption((option) =>
+    option
+      .setName("motivo")
+      .setDescription("Motivo da remoção")
+      .setRequired(false)
+  ),
+  new SlashCommandBuilder()
     .setName("hierarquia")
     .setDescription("Ver hierarquia operacional"),
   new SlashCommandBuilder()
@@ -937,6 +958,71 @@ client.on("interactionCreate", async (interaction) => {
           embeds: [embed],
         });
       }
+
+      // =========================
+// /REMOVERTEMPO
+// =========================
+if (interaction.commandName === "removertempo") {
+
+  const usuario = interaction.options.getUser("usuario");
+  const minutos = interaction.options.getInteger("minutos");
+  const motivo =
+    interaction.options.getString("motivo") || "Sem motivo informado";
+
+  if (!interaction.member.permissions.has("Administrator")) {
+    return await interaction.reply({
+     content: "❌ Apenas administradores podem usar este comando.",
+     ephemeral: true,
+    });
+  }
+
+  if (minutos <= 0) {
+    return await interaction.reply({
+      content: "❌ Informe uma quantidade válida de minutos.",
+      ephemeral: true,
+    });
+  }
+
+  const membro = ensureMember(usuario.id);
+
+  membro.tempo = Math.max(0, membro.tempo - minutos);
+  membro.weeklyTime = Math.max(0, membro.weeklyTime - minutos);
+  membro.pontos = Math.max(0, membro.pontos - Math.floor(minutos));
+
+  logAction(usuario.id, "tempo", -minutos);
+
+  saveDb();
+
+  const embed = new EmbedBuilder()
+    .setTitle("⏱️ Tempo Removido")
+    .setColor("Red")
+    .addFields(
+      {
+        name: "👮 Policial",
+        value: `<@${usuario.id}>`,
+        inline: true,
+      },
+      {
+        name: "⏱️ Tempo removido",
+        value: `${minutos} minutos`,
+        inline: true,
+      },
+      {
+        name: "👤 Removido por",
+        value: `<@${interaction.user.id}>`,
+        inline: true,
+      },
+      {
+        name: "📌 Motivo",
+        value: motivo,
+      }
+    )
+    .setTimestamp();
+
+  return await interaction.reply({
+    embeds: [embed],
+  });
+}
 
       // =========================
       // /HIERARQUIA
