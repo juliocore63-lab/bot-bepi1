@@ -1294,11 +1294,11 @@ if (interaction.commandName === "removertempo") {
 
   saveDb();
 
-  return await interaction.update({
-    content: "✅ Patrulha finalizada.",
-    embeds: [embed],
-    components: [],
-  });
+  await interaction.message.delete();
+
+return await interaction.reply({
+  embeds: [embed],
+});
 }
 
     if (interaction.customId.startsWith("pmce_")) {
