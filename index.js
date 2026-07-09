@@ -1510,20 +1510,34 @@ if (interaction.commandName === "removertempo") {
       // =========================
       // FINALIZAR
       // =========================
-      if (
-        tipo === "finalizar"
-      ) {
+      if (tipo === "finalizar") {
 
-        if (!v.membros.includes(id)) {
-  return await interaction.reply({
-    content: "❌ Você precisa estar na viatura.",
-    ephemeral: true,
-  });
-}
+  if (!v.membros.includes(id)) {
+    return await interaction.reply({
+      content: "❌ Você precisa estar na viatura.",
+      ephemeral: true,
+    });
+  }
 
-if (v.lider !== id) {
+  if (v.lider !== id) {
+    return await interaction.reply({
+      content: "❌ Apenas o líder da viatura pode finalizar a patrulha.",
+      ephemeral: true,
+    });
+  }
+
+  v.confirmacao = {
+    liderId: id,
+    participantes: [...v.membros],
+  };
+
+  saveDb();
+
   return await interaction.reply({
-    content: "❌ Apenas o líder da viatura pode finalizar a patrulha.",
+    content:
+      `🚓 **Confirmar participantes da viatura ${nome}**\n\n` +
+      `Todos estão marcados por padrão. Remova quem não participou da patrulha.`,
+    components: buildConfirmarParticipantes(nome, v),
     ephemeral: true,
   });
 }
