@@ -739,13 +739,18 @@ client.on("interactionCreate", async (interaction) => {
 
         ensureViatura(nome);
 
-        saveDb();
+        const painelMsg = await interaction.editReply({
+  content: buildPainelContent(nome),
+  components: buildButtons(nome),
+});
 
-        return await interaction.editReply({
-          content: buildPainelContent(nome),
-          components: buildButtons(nome),
-        });
-      }
+const v = ensureViatura(nome);
+v.messageId = painelMsg.id;
+v.channelId = painelMsg.channel.id;
+
+saveDb();
+
+return;
 
       // =========================
       // /RANKING
@@ -1281,6 +1286,8 @@ if (interaction.commandName === "removertempo") {
 
   db.viaturas[nome] = {
     membros: [],
+    messageId: null,
+    channelId: null,
     entrada: {},
     lider: null,
     inicio: null,
@@ -1293,6 +1300,27 @@ if (interaction.commandName === "removertempo") {
   };
 
   saveDb();
+
+  try {
+  if (v.channelId && v.messageId) {
+    const canalPainel =
+      await client.channels.fetch(
+        v.channelId
+      );
+
+    const msgPainel =
+      await canalPainel.messages.fetch(
+        v.messageId
+      );
+
+    await msgPainel.delete();
+  }
+} catch (error) {
+  console.error(
+    "Erro ao apagar painel da viatura:",
+    error
+  );
+}
 
 return await interaction.update({
   content: "✅ Patrulha finalizada.",
