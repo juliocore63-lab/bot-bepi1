@@ -1179,6 +1179,32 @@ if (interaction.commandName === "removertempo") {
         !equipeFinal.includes(membroId)
     );
 
+  for (const removidoId of removidos) {
+  const m = ensureMember(removidoId);
+
+  const pontosRemover =
+    v.prisoes * 10 +
+    v.ocorrencias * 5 +
+    Math.floor(v.dinheiro / 1000);
+
+  m.prisoes = Math.max(0, m.prisoes - v.prisoes);
+  m.ocorrencias = Math.max(0, m.ocorrencias - v.ocorrencias);
+  m.dinheiro = Math.max(0, m.dinheiro - v.dinheiro);
+  m.pontos = Math.max(0, m.pontos - pontosRemover);
+
+  if (v.prisoes > 0) {
+    logAction(removidoId, "prisao", -v.prisoes);
+  }
+
+  if (v.ocorrencias > 0) {
+    logAction(removidoId, "ocorrencia", -v.ocorrencias);
+  }
+
+  if (v.dinheiro > 0) {
+    logAction(removidoId, "dinheiro", -v.dinheiro);
+  }
+}
+
   for (const membroId of equipeFinal) {
     registrarSaida(v, membroId);
   }
