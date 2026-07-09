@@ -1294,10 +1294,10 @@ if (interaction.commandName === "removertempo") {
 
   saveDb();
 
-  await interaction.message.delete();
-
-return await interaction.reply({
+return await interaction.update({
+  content: "✅ Patrulha finalizada.",
   embeds: [embed],
+  components: [],
 });
 }
 
