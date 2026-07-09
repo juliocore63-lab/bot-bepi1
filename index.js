@@ -752,6 +752,8 @@ saveDb();
 
 return;
 
+}
+
       // =========================
       // /RANKING
       // =========================
@@ -1692,7 +1694,9 @@ return await interaction.update({
     components: buildConfirmarParticipantes(nome, v),
     ephemeral: true,
   });
-}
+  }
+
+    }
 
     // =====================================
     // MODAL DINHEIRO
