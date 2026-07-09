@@ -39,6 +39,7 @@ const DB_FILE = path.join(__dirname, "db.json");
 
 function loadDb() {
   const initial = {
+    contadorPatrulha: 1,
     viaturas: {},
     membros: {},
     historico: [],
@@ -52,6 +53,7 @@ function loadDb() {
   try {
     const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
 
+    if (!data.contadorPatrulha) data.contadorPatrulha = 1;
     if (!data.viaturas) data.viaturas = {};
     if (!data.membros) data.membros = {};
     if (!data.historico) data.historico = [];
@@ -64,6 +66,16 @@ function loadDb() {
 }
 
 const db = loadDb();
+
+function gerarNumeroPatrulha() {
+  const numero = db.contadorPatrulha || 1;
+
+  db.contadorPatrulha = numero + 1;
+
+  saveDb();
+
+  return String(numero).padStart(6, "0");
+}
 
 function saveDb() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
@@ -1224,11 +1236,31 @@ if (interaction.commandName === "removertempo") {
         ).toFixed(1)
       : "0.0";
 
+  const numeroPatrulha = gerarNumeroPatrulha();
+   
+  if (!db.historico) {
+  db.historico = [];
+}
+
+db.historico.push({
+  numero: numeroPatrulha,
+  data: new Date().toISOString(),
+  viatura: nome,
+  comandante: v.lider,
+  equipe: [...equipeFinal],
+  tempo: tempoTotal,
+  prisoes: v.prisoes,
+  ocorrencias: v.ocorrencias,
+  dinheiro: v.dinheiro,
+});
+
+saveDb();
+
   const embed =
     new EmbedBuilder()
-      .setTitle(
-        `🚔 RELATÓRIO FINAL - ${nome}`
-      )
+     .setTitle(
+  `🚔 RELATÓRIO FINAL #${numeroPatrulha} - ${nome}`
+)
       .setColor("Red")
       .addFields(
         {
