@@ -1165,15 +1165,113 @@ if (interaction.commandName === "removertempo") {
     });
   }
 
-  const participantes =
+  const lider =
+    v.lider
+      ? `<@${v.lider}>`
+      : "Nenhum";
+
+  const equipeFinal =
     v.confirmacao?.participantes || [...v.membros];
 
-  return await interaction.reply({
-    content:
-      "✅ Participantes confirmados:\n\n" +
-      participantes.map((id) => `<@${id}>`).join("\n") +
-      "\n\n⚠️ Agora me avise para fazermos a última etapa da finalização.",
-    ephemeral: true,
+  const removidos =
+    v.membros.filter(
+      (membroId) =>
+        !equipeFinal.includes(membroId)
+    );
+
+  for (const membroId of equipeFinal) {
+    registrarSaida(v, membroId);
+  }
+
+  const tempoTotal =
+    v.inicio
+      ? (
+          (Date.now() - v.inicio) /
+          60000
+        ).toFixed(1)
+      : "0.0";
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        `🚔 RELATÓRIO FINAL - ${nome}`
+      )
+      .setColor("Red")
+      .addFields(
+        {
+          name: "⭐ Comandante",
+          value: lider,
+        },
+        {
+          name: "🚓 Viatura",
+          value: nome.toUpperCase(),
+          inline: true,
+        },
+        {
+          name: "⏱️ Tempo",
+          value: `${tempoTotal} min`,
+          inline: true,
+        },
+        {
+          name: "💰 Dinheiro",
+          value: `R$${v.dinheiro}`,
+          inline: true,
+        },
+        {
+          name: "🚔 Prisões",
+          value: String(v.prisoes),
+          inline: true,
+        },
+        {
+          name: "📦 Ocorrências",
+          value: String(v.ocorrencias),
+          inline: true,
+        },
+        {
+          name: "👮 Equipe",
+          value:
+            equipeFinal
+              .map((id) => `<@${id}>`)
+              .join("\n") || "Nenhum",
+        },
+        {
+          name: "❌ Não contabilizados",
+          value:
+            removidos.length
+              ? removidos
+                  .map((id) => `<@${id}>`)
+                  .join("\n")
+              : "Nenhum",
+        },
+        {
+          name: "⏱️ Tempo Individual",
+          value: formatTempoIndividual(
+            v,
+            equipeFinal
+          ),
+        }
+      )
+      .setTimestamp();
+
+  db.viaturas[nome] = {
+    membros: [],
+    entrada: {},
+    lider: null,
+    inicio: null,
+    prisoes: 0,
+    dinheiro: 0,
+    ocorrencias: 0,
+    tempoIndividual: {},
+    historicoEntradas: [],
+    historicoSaidas: [],
+  };
+
+  saveDb();
+
+  return await interaction.update({
+    content: "✅ Patrulha finalizada.",
+    embeds: [embed],
+    components: [],
   });
 }
 
@@ -1541,158 +1639,6 @@ if (interaction.commandName === "removertempo") {
     ephemeral: true,
   });
 }
-
-        const lider =
-          v.lider
-            ? `<@${v.lider}>`
-            : "Nenhum";
-
-        const equipeFinal = [
-          ...v.membros,
-        ];
-
-        for (const membroId of equipeFinal) {
-          registrarSaida(
-            v,
-            membroId
-          );
-        }
-
-        const tempoTotal =
-          v.inicio
-            ? (
-                (Date.now() -
-                  v.inicio) /
-                60000
-              ).toFixed(1)
-            : "0.0";
-
-        const embed =
-          new EmbedBuilder()
-            .setTitle(
-              `🚔 RELATÓRIO FINAL - ${nome}`
-            )
-            .setColor("Red")
-            .addFields(
-              {
-                name:
-                  "⭐ Comandante",
-                value: lider,
-              },
-              {
-                name:
-                  "🚓 Viatura",
-                value:
-                  nome.toUpperCase(),
-                inline: true,
-              },
-              {
-                name:
-                  "⏱️ Tempo",
-                value:
-                  `${tempoTotal} min`,
-                inline: true,
-              },
-              {
-                name:
-                  "💰 Dinheiro",
-                value:
-                  `R$${v.dinheiro}`,
-                inline: true,
-              },
-              {
-                name:
-                  "🚔 Prisões",
-                value:
-                  String(
-                    v.prisoes
-                  ),
-                inline: true,
-              },
-              {
-                name:
-                  "📦 Ocorrências",
-                value:
-                  String(
-                    v.ocorrencias
-                  ),
-                inline: true,
-              },
-              {
-                name:
-                  "👮 Equipe",
-                value:
-                  equipeFinal
-                    .map(
-                      (id) =>
-                        `<@${id}>`
-                    )
-                    .join("\n") ||
-                  "Nenhum",
-              },
-              {
-                name:
-                  "⏱️ Tempo Individual",
-                value:
-                  formatTempoIndividual(
-                    v,
-                    equipeFinal
-                  ),
-              }
-            )
-            .setTimestamp();
-
-        try {
-
-          if (
-            process.env
-              .LOG_CHANNEL
-          ) {
-
-            const canal =
-              await client.channels.fetch(
-                process.env
-                  .LOG_CHANNEL
-              );
-
-            if (canal) {
-              await canal.send({
-                embeds: [
-                  embed,
-                ],
-              });
-            }
-          }
-
-        } catch (error) {
-          console.error(
-            "Erro ao enviar log:",
-            error
-          );
-        }
-
-        db.viaturas[nome] = {
-          membros: [],
-          entrada: {},
-          lider: null,
-          inicio: null,
-          prisoes: 0,
-          dinheiro: 0,
-          ocorrencias: 0,
-          tempoIndividual: {},
-          historicoEntradas: [],
-          historicoSaidas: [],
-        };
-
-        saveDb();
-
-        return await interaction.update({
-          content:
-            "✅ Patrulha finalizada.",
-          embeds: [embed],
-          components: [],
-        });
-      }
 
       return;
     }
