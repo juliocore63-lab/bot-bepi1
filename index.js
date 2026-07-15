@@ -695,12 +695,12 @@ client.on("interactionCreate", async (interaction) => {
     const nome = nomeRaw.toUpperCase().trim();
     const v = ensureViatura(nome);
 
-    if (v.lider !== interaction.user.id) {
-      return await interaction.reply({
-        content: "❌ Apenas o líder da viatura pode alterar os participantes.",
-        ephemeral: true,
-      });
-    }
+    if (!v.membros.includes(interaction.user.id)) {
+  return await interaction.reply({
+    content: "❌ Apenas integrantes da viatura podem alterar os participantes.",
+    ephemeral: true,
+  });
+}
 
     v.confirmacao.participantes = interaction.values;
 
@@ -1222,12 +1222,12 @@ if (interaction.commandName === "removertempo") {
 
   const v = ensureViatura(nome);
 
-  if (v.lider !== interaction.user.id) {
-    return await interaction.reply({
-      content: "❌ Apenas o líder da viatura pode confirmar o fechamento.",
-      ephemeral: true,
-    });
-  }
+  if (!v.membros.includes(interaction.user.id)) {
+  return await interaction.reply({
+    content: "❌ Apenas integrantes da viatura podem confirmar o fechamento.",
+    ephemeral: true,
+  });
+}
 
   const lider =
     v.lider
@@ -1765,13 +1765,6 @@ return await interaction.update({
   if (!v.membros.includes(id)) {
     return await interaction.reply({
       content: "❌ Você precisa estar na viatura.",
-      ephemeral: true,
-    });
-  }
-
-  if (v.lider !== id) {
-    return await interaction.reply({
-      content: "❌ Apenas o líder da viatura pode finalizar a patrulha.",
       ephemeral: true,
     });
   }
