@@ -29,6 +29,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -747,6 +748,50 @@ client.on("interactionCreate", async (interaction) => {
 
         await interaction.deferReply();
 
+        const canaisPatrulhamento = [
+  "1141776940911566929",
+  "1141776942287298611",
+  "1141776944392839290",
+  "1141776946481610823",
+  "1141776948138360993",
+  "1141776949870612480",
+  "1141776956237545563",
+  "1141776951913234533",
+  "1141776953192484864",
+];
+
+const CANAL_ROCAM = "1141776953192484864";
+
+const canalAtual = interaction.member.voice?.channel;
+
+if (!canalAtual) {
+  return await interaction.editReply({
+    content:
+      "❌ Você precisa estar em um canal de patrulhamento para abrir uma viatura.",
+  });
+}
+
+if (!canaisPatrulhamento.includes(canalAtual.id)) {
+  return await interaction.editReply({
+    content:
+      "❌ Você não está em um canal de patrulhamento autorizado.",
+  });
+}
+
+const integrantesNaCall = canalAtual.members.filter(
+  (membro) => !membro.user.bot
+).size;
+
+if (
+  canalAtual.id !== CANAL_ROCAM &&
+  integrantesNaCall < 2
+) {
+  return await interaction.editReply({
+    content:
+      "❌ É necessário ter no mínimo 2 policiais na chamada para abrir uma viatura.",
+  });
+}
+
         const nome = interaction.options.getString("nome");
 
         ensureViatura(nome);
@@ -1317,6 +1362,25 @@ saveDb();
         }
       )
       .setTimestamp();
+
+      try {
+  if (process.env.LOG_CHANNEL) {
+    const canalLog = await client.channels.fetch(
+      process.env.LOG_CHANNEL
+    );
+
+    if (canalLog && canalLog.isTextBased()) {
+      await canalLog.send({
+        embeds: [embed],
+      });
+    }
+  }
+} catch (error) {
+  console.error(
+    "Erro ao enviar resumo da patrulha para o canal de logs:",
+    error
+  );
+}
 
   db.viaturas[nome] = {
     membros: [],
