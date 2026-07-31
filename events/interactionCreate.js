@@ -16,7 +16,6 @@ const handleRankingButtons = require("../handlers/buttons/rankingButtons");
 const handleViaturaButtons = require("../handlers/buttons/viaturaButtons");
 const handleConfirmFinalizar = require("../handlers/buttons/confirmFinalizar");
 const handleCorregedoria = require("../corregedoria/handler");
-const Member = require("../models/member");
 
 console.log("Tipo:", typeof handleCorregedoria);
 console.log(handleCorregedoria);
