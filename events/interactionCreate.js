@@ -17,6 +17,7 @@ const handleViaturaButtons = require("../handlers/buttons/viaturaButtons");
 const handleConfirmFinalizar = require("../handlers/buttons/confirmFinalizar");
 const handleCorregedoria = require("../corregedoria/handler");
 const {handleTicketInteraction,} = require("../tickets");
+const Member = require("../models/Member");
 
 console.log("Tipo:", typeof handleCorregedoria);
 console.log(handleCorregedoria);
