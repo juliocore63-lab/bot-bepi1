@@ -11,8 +11,10 @@ const META = 300;
 const ITENS_POR_PAGINA = 10;
 
 function formatMinutes(totalMinutes) {
-  const horas = Math.floor(totalMinutes / 60);
-  const minutos = totalMinutes % 60;
+  const total = Math.floor(Number(totalMinutes) || 0);
+
+  const horas = Math.floor(total / 60);
+  const minutos = total % 60;
 
   return `${String(horas).padStart(2, "0")}h ${String(
     minutos

@@ -1,10 +1,12 @@
 function formatMinutes(min) {
-  const horas = Math.floor(min / 60);
-  const minutos = Math.floor(min % 60);
+  const total = Math.floor(Number(min) || 0);
 
-  return `${horas.toString().padStart(2, "0")}h ${minutos
-    .toString()
-    .padStart(2, "0")}min`;
+  const horas = Math.floor(total / 60);
+  const minutos = total % 60;
+
+  return `${String(horas).padStart(2, "0")}h ${String(
+    minutos
+  ).padStart(2, "0")}min`;
 }
 
 function formatTempoIndividual(viatura, equipeFinal) {
