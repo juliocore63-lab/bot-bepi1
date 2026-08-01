@@ -1,4 +1,7 @@
-const { SlashCommandBuilder } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+} = require("discord.js");
 
 const { editalPMCECommand } = require("../editalpmce");
 const { cursoPMCECommand } = require("../cursoPMCE");
@@ -6,6 +9,33 @@ const { cursoPMCECommand } = require("../cursoPMCE");
 const commands = [
   editalPMCECommand,
   cursoPMCECommand,
+
+  new SlashCommandBuilder()
+  .setName("ticketsetup")
+  .setDescription("Enviar o painel de tickets")
+  .setDefaultMemberPermissions(
+    PermissionFlagsBits.Administrator
+  ),
+
+new SlashCommandBuilder()
+  .setName("add")
+  .setDescription("Adicionar um usuário ao ticket")
+  .addUserOption((option) =>
+    option
+      .setName("usuario")
+      .setDescription("Usuário que será adicionado")
+      .setRequired(true)
+  ),
+
+new SlashCommandBuilder()
+  .setName("remove")
+  .setDescription("Remover um usuário do ticket")
+  .addUserOption((option) =>
+    option
+      .setName("usuario")
+      .setDescription("Usuário que será removido")
+      .setRequired(true)
+  ),
 
   new SlashCommandBuilder()
     .setName("corregedoria")

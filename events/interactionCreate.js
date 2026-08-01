@@ -16,6 +16,7 @@ const handleRankingButtons = require("../handlers/buttons/rankingButtons");
 const handleViaturaButtons = require("../handlers/buttons/viaturaButtons");
 const handleConfirmFinalizar = require("../handlers/buttons/confirmFinalizar");
 const handleCorregedoria = require("../corregedoria/handler");
+const {handleTicketInteraction,} = require("../tickets");
 
 console.log("Tipo:", typeof handleCorregedoria);
 console.log(handleCorregedoria);
@@ -48,6 +49,10 @@ module.exports = function registrarInteractionCreate(client, contexto) {
   client.on("interactionCreate", async (interaction) => {
     try {
 
+      if (await handleTicketInteraction(interaction)) {
+  return;
+}
+
       if (await handleCorregedoria(interaction)) {
         return;
       }
@@ -57,26 +62,40 @@ module.exports = function registrarInteractionCreate(client, contexto) {
      }
       
       if (interaction.isChatInputCommand()) {
-        const guildId = interaction.guild.id;
-        const commandName = interaction.commandName;
-  
-        const servidorPMCE = process.env.GUILD_ID_1;
-        const servidorSecundario = process.env.GUILD_ID_2;
-  
-        if (guildId === servidorSecundario && commandName !== "editalpmce") {
-          return interaction.reply({
-            content: "❌ Este comando não está disponível neste servidor.",
-            ephemeral: true,
-          });
-        }
-  
-        if (guildId === servidorPMCE && commandName === "editalpmce") {
-          return interaction.reply({
-            content: "❌ O edital da PMCE não está disponível neste servidor.",
-            ephemeral: true,
-          });
-        }
-      }
+  const guildId = interaction.guild.id;
+  const commandName = interaction.commandName;
+
+  const servidorPMCE = process.env.GUILD_ID_1;
+  const servidorSecundario = process.env.GUILD_ID_2;
+
+  const comandosPermitidosNoSecundario = [
+    "editalpmce",
+    "ticketsetup",
+    "add",
+    "remove",
+  ];
+
+  if (
+    guildId === servidorSecundario &&
+    !comandosPermitidosNoSecundario.includes(commandName)
+  ) {
+    return interaction.reply({
+      content: "❌ Este comando não está disponível neste servidor.",
+      ephemeral: true,
+    });
+  }
+
+  if (
+    guildId === servidorPMCE &&
+    commandName === "editalpmce"
+  ) {
+    return interaction.reply({
+      content:
+        "❌ O edital da PMCE não está disponível neste servidor.",
+      ephemeral: true,
+    });
+  }
+}
   
       if (interaction.isChatInputCommand()) {
   
