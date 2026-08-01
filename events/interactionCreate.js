@@ -18,9 +18,9 @@ const handleConfirmFinalizar = require("../handlers/buttons/confirmFinalizar");
 const handleCorregedoria = require("../corregedoria/handler");
 const {handleTicketInteraction,} = require("../tickets");
 const Member = require("../models/Member");
-
-console.log("Tipo:", typeof handleCorregedoria);
-console.log(handleCorregedoria);
+const handleTempoButtons = require(
+  "../handlers/buttons/tempoButtons"
+);
 
 module.exports = function registrarInteractionCreate(client, contexto) {
   const {
@@ -51,6 +51,10 @@ module.exports = function registrarInteractionCreate(client, contexto) {
     try {
 
       if (await handleTicketInteraction(interaction)) {
+  return;
+}
+
+if (await handleTempoButtons(interaction)) {
   return;
 }
 
@@ -378,6 +382,7 @@ await interaction.deferReply();
         // =========================
         if (interaction.commandName === "tempo") {
   const META = 300;
+  const ITENS_POR_PAGINA = 10;
 
   const membros = await Member.find({
     weeklyTime: {
@@ -387,24 +392,45 @@ await interaction.deferReply();
     weeklyTime: -1,
   });
 
-  const descricao =
-    membros
-      .map((dados) => {
-        const tempo = dados.weeklyTime || 0;
+  if (!membros.length) {
+    return interaction.reply({
+      content: "❌ Nenhum tempo semanal registrado.",
+      ephemeral: true,
+    });
+  }
 
-        let status = "🔴 Abaixo da meta";
+  const pagina = 0;
+  const totalPaginas = Math.ceil(
+    membros.length / ITENS_POR_PAGINA
+  );
 
-        if (tempo >= META) {
-          status = "🟢 Meta concluída";
-        } else if (tempo >= META * 0.7) {
-          status = "🟡 Próximo da meta";
-        }
+  const inicio = pagina * ITENS_POR_PAGINA;
+  const membrosPagina = membros.slice(
+    inicio,
+    inicio + ITENS_POR_PAGINA
+  );
 
-        return `<@${dados.id}> | ⏱️ ${formatMinutes(
-          tempo
-        )} | ${status}`;
-      })
-      .join("\n") || "Sem dados.";
+  const descricao = membrosPagina
+    .map((dados, index) => {
+      const tempo = dados.weeklyTime || 0;
+
+      let status = "🔴 Abaixo da meta";
+
+      if (tempo >= META) {
+        status = "🟢 Meta concluída";
+      } else if (tempo >= META * 0.7) {
+        status = "🟡 Próximo da meta";
+      }
+
+      const posicao = inicio + index + 1;
+
+      return [
+        `**${posicao}.** <@${dados.id}>`,
+        `⏱️ ${formatMinutes(tempo)}`,
+        status,
+      ].join(" • ");
+    })
+    .join("\n");
 
   const embed = new EmbedBuilder()
     .setTitle("📊 Controle Semanal")
@@ -414,10 +440,30 @@ await interaction.deferReply();
       name: "📌 Meta semanal",
       value: "05h 00min",
     })
+    .setFooter({
+      text: `Página ${pagina + 1}/${totalPaginas} • ${
+        membros.length
+      } policiais`,
+    })
     .setTimestamp();
+
+  const botoes = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`tempo_anterior_${pagina}`)
+      .setEmoji("⬅️")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
+
+    new ButtonBuilder()
+      .setCustomId(`tempo_proximo_${pagina}`)
+      .setEmoji("➡️")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(totalPaginas <= 1)
+  );
 
   return interaction.reply({
     embeds: [embed],
+    components: totalPaginas > 1 ? [botoes] : [],
   });
 }
   
