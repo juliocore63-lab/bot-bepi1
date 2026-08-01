@@ -375,69 +375,50 @@ await interaction.deferReply();
         // =========================
         // /TEMPO
         // =========================
-        if (
-          interaction.commandName ===
-          "tempo"
-        ) {
-  
-          const META = 300;
-  
-          const membros =
-  await Member.find({
+        if (interaction.commandName === "tempo") {
+  const META = 300;
+
+  const membros = await Member.find({
     weeklyTime: {
-      $gt: 0
-    }
-  })
-  .sort({
-    weeklyTime: -1
+      $gt: 0,
+    },
+  }).sort({
+    weeklyTime: -1,
   });
-          const descricao =
-            membros
-              .map((dados) => {
-  
-                const tempo =
-                  dados.weeklyTime || 0;
-  
-                let status =
-                  "🔴 Abaixo da meta";
-  
-                if (tempo >= META) {
-                  status =
-                    "🟢 Meta concluída";
-                } else if (
-                  tempo >= META * 0.7
-                ) {
-                  status =
-                    "🟡 Próximo da meta";
-                }
-  
-                return `<@${id}> | ⏱️ ${formatMinutes(
-                  tempo
-                )} | ${status}`;
-              })
-              .join("\n") ||
-            "Sem dados.";
-  
-          const embed =
-            new EmbedBuilder()
-              .setTitle(
-                "📊 Controle Semanal"
-              )
-              .setColor("Gold")
-              .setDescription(
-                descricao
-              )
-              .addFields({
-                name: "📌 Meta semanal",
-                value:
-                  "05h 00min",
-              })
-              .setTimestamp();
-  
-          return await interaction.reply({
-            embeds: [embed],
-          });
+
+  const descricao =
+    membros
+      .map((dados) => {
+        const tempo = dados.weeklyTime || 0;
+
+        let status = "🔴 Abaixo da meta";
+
+        if (tempo >= META) {
+          status = "🟢 Meta concluída";
+        } else if (tempo >= META * 0.7) {
+          status = "🟡 Próximo da meta";
         }
+
+        return `<@${dados.id}> | ⏱️ ${formatMinutes(
+          tempo
+        )} | ${status}`;
+      })
+      .join("\n") || "Sem dados.";
+
+  const embed = new EmbedBuilder()
+    .setTitle("📊 Controle Semanal")
+    .setColor("Gold")
+    .setDescription(descricao)
+    .addFields({
+      name: "📌 Meta semanal",
+      value: "05h 00min",
+    })
+    .setTimestamp();
+
+  return interaction.reply({
+    embeds: [embed],
+  });
+}
   
 // =========================
 // /ZERARTEMPO
