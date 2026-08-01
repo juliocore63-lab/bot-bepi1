@@ -27,6 +27,24 @@ new SlashCommandBuilder()
       .setRequired(true)
   ),
 
+  new SlashCommandBuilder()
+  .setName("promover")
+  .setDescription("Promover automaticamente um policial")
+  .addUserOption((option) =>
+    option
+      .setName("policial")
+      .setDescription("Policial que será promovido")
+      .setRequired(true)
+  )
+  .addStringOption((option) =>
+    option
+      .setName("rg")
+      .setDescription("RG do policial")
+      .setMinLength(1)
+      .setMaxLength(10)
+      .setRequired(true)
+  ),
+
 new SlashCommandBuilder()
   .setName("remove")
   .setDescription("Remover um usuário do ticket")

@@ -21,6 +21,9 @@ const Member = require("../models/Member");
 const handleTempoButtons = require(
   "../handlers/buttons/tempoButtons"
 );
+const {
+  handlePromotionInteraction,
+} = require("../promocao");
 
 module.exports = function registrarInteractionCreate(client, contexto) {
   const {
@@ -55,6 +58,13 @@ module.exports = function registrarInteractionCreate(client, contexto) {
 }
 
 if (await handleTempoButtons(interaction)) {
+  return;
+}
+
+const promotionHandled =
+  await handlePromotionInteraction(interaction);
+
+if (promotionHandled) {
   return;
 }
 
