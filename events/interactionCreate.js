@@ -597,39 +597,47 @@ if (interaction.commandName === "atividade") {
 // /ZERARTEMPO
 // =========================
 if (interaction.commandName === "zerartempo") {
-  const agora = Date.now();
-
-  // Zera os dados da memória, que é a fonte usada pelo bot.
-  for (const membro of Object.values(db.membros)) {
-    membro.weeklyTime = 0;
-
-    // Quem estiver em serviço continua contando,
-    // mas somente a partir do momento do reset.
-    if (membro.patrolStart) {
-      membro.patrolStart = agora;
-    } else {
-      membro.patrolStart = null;
-    }
-
-    membro.lastWeeklyReset = agora;
-  }
-
-  // Reinicia também o horário de entrada nas viaturas abertas.
-  // Isso impede que uma saída futura recupere o período anterior ao reset.
-  for (const viatura of Object.values(db.viaturas)) {
-    for (const membroId of Object.keys(viatura.entrada || {})) {
-      viatura.entrada[membroId] = agora;
-    }
-  }
-
-  // Salva a memória corrigida no MongoDB.
-  await saveDb();
-
-  return interaction.reply({
-    content:
-      "✅ Todos os tempos semanais foram zerados. As sessões em andamento passaram a contar a partir de agora.",
-    ephemeral: true,
+  // Responde imediatamente ao Discord e ganha tempo para salvar os dados.
+  await interaction.deferReply({
+    flags: 64, // resposta visível somente para quem usou o comando
   });
+
+  try {
+    const agora = Date.now();
+
+    for (const membro of Object.values(db.membros || {})) {
+      membro.weeklyTime = 0;
+
+      // Quem está em serviço continua contando,
+      // porém somente a partir do momento do reset.
+      if (membro.patrolStart) {
+        membro.patrolStart = agora;
+      } else {
+        membro.patrolStart = null;
+      }
+    }
+
+    // Reinicia o horário das sessões ativas nas viaturas.
+    for (const viatura of Object.values(db.viaturas || {})) {
+      for (const membroId of Object.keys(viatura.entrada || {})) {
+        viatura.entrada[membroId] = agora;
+      }
+    }
+
+    await saveDb();
+
+    return interaction.editReply({
+      content:
+        "✅ Todos os tempos semanais foram zerados. As sessões em andamento passaram a contar a partir de agora.",
+    });
+  } catch (error) {
+    console.error("Erro ao zerar os tempos:", error);
+
+    return interaction.editReply({
+      content:
+        "❌ Ocorreu um erro ao zerar os tempos semanais.",
+    });
+  }
 }
 
         // =========================
