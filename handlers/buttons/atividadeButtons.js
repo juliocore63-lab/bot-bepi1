@@ -170,7 +170,7 @@ module.exports =
       }
 
       const membrosServidor =
-        await interaction.guild.members.fetch();
+  interaction.guild.members.cache;
 
       const membros = membrosServidor
         .filter(
