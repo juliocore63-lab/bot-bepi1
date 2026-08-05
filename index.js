@@ -18,6 +18,7 @@ const {
 } = require("./cursoPMCE");
 
 const criarContextoBot = require("./bootstrap");
+const http = require("node:http");
 
 const client = new Client({
   intents: [
@@ -73,3 +74,25 @@ iniciarBot().catch((error) => {
   console.error("❌ Erro ao iniciar o bot:", error);
   process.exitCode = 1;
 });
+
+const PORT = Number(process.env.PORT) || 10000;
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+  });
+
+  res.end(
+    JSON.stringify({
+      status: "online",
+      bot: client.user?.tag || "iniciando",
+      uptime: Math.floor(process.uptime()),
+    })
+  );
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 Servidor HTTP ativo na porta ${PORT}`);
+});
+
+client.login(process.env.TOKEN);
